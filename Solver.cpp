@@ -1,0 +1,497 @@
+#include "Solver.h"
+
+//===================== SOLVER PART ==============================
+
+//===================== CONSTRUCTOR & DESTRUCTOR =================
+
+Solver::Solver(Grid_1D &grid, ShapeFunction &shapefunction, Physics &physics) : m_grid(grid), m_shapefunction(shapefunction), m_physics(physics)
+{
+    std::cout<<std::string(60, '=')<<"\n";
+    std::cout<<"\n\n\n \t\t\tSOLVER SECTION\n\n\n";
+    m_dxSave=0.01;
+    m_integrationOrder=ceil((m_shapefunction.get_deg()*m_shapefunction.get_deg()+1)/2.0);
+    
+
+    const gsl_integration_fixed_type * T = gsl_integration_fixed_legendre;
+
+    m_work = gsl_integration_fixed_alloc(T, m_integrationOrder, -1.0, 1.0, 0.0, 0.0);
+    m_local_nodes=gsl_integration_fixed_nodes(m_work);
+    m_local_weights=gsl_integration_fixed_weights(m_work);
+
+    std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER PARAMETERS "<<std::string(4, '#')<<"\n\n";
+    std::cout<<"\tdim[phi(x)] = "<<m_shapefunction.get_deg()<<"\n";
+    std::cout<<"\tsaving step size = "<<m_dxSave<<"\n";
+    std::cout<<"\tIntegration Order = "<<m_integrationOrder<<"\n\n";
+    std::cout<<"\t\t"<<"# SOLVER PARAMETERS END #\n\n";
+
+}
+
+Solver::~Solver() 
+{
+    gsl_integration_fixed_free(m_work);
+    std::cout<<"\n\n\n \t\t\tSOLVER SECTION DONE\n";
+    std::cout<<std::string(60, '=')<<"\n";
+}
+
+
+//===========================================================
+
+//====================== SOLVER ============================
+
+// 1D REAL
+
+
+// ****************** LOCAL ELEMENT *******************
+
+void Solver::local_1D_StifnessMatrix(std::vector<double> &S, int m)
+{
+    double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
+    int p = m_shapefunction.get_deg()+1;
+    for (int j=0; j<p; j++)
+    {
+        for (int i=0; i<p; i++)
+        {
+            int l = i+p*j;
+
+            for (int k=0; k<m_integrationOrder; k++)
+            {
+                double ksi = m_local_nodes[k]; 
+                double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
+                double u_x = U_1D(x_ksi);
+
+                S[l]+=m_local_weights[k]*(-m_shapefunction.Rphi_1D_deriv(ksi, i)*m_shapefunction.Rphi_1D_deriv(ksi,j)/Jm + 
+                m_physics.B(x_ksi, u_x)*m_shapefunction.Rphi_1D_deriv(ksi,i)*m_shapefunction.Rphi_1D(ksi,j)+
+                m_physics.C(x_ksi, u_x)*m_shapefunction.Rphi_1D(ksi,i)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
+            }
+
+        }
+    }
+}
+
+
+void Solver::local_1D_LoadVector(std::vector<double> &F, int m)
+{
+    double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
+    int p = m_shapefunction.get_deg()+1;
+    for (int j=0; j<p; j++)
+    {
+        for (int k=0; k<m_integrationOrder; k++)
+        {
+            double ksi = m_local_nodes[k]; 
+            double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
+            double u_x = U_1D(x_ksi);
+            F[j]+=m_local_weights[k]*Jm*m_physics.D(x_ksi, u_x)*m_shapefunction.Rphi_1D(ksi,j);
+        }
+    }
+}
+
+
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
+{
+    double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
+    int p = m_shapefunction.get_deg()+1;
+    for (int j=0; j<p; j++)
+    {
+        for (int i=0; i<p; i++)
+        {
+            int l = i+p*j;
+
+            for (int k=0; k<m_integrationOrder; k++)
+            {
+                double ksi = m_local_nodes[k]; 
+                double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
+                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
+            }
+
+        }
+    }
+}
+// ****************************************************
+
+// ****************** BOUNDARY CONDITIONS *******************
+
+void Solver::boundaryConditions(std::string work_type)
+{
+    int p = m_shapefunction.get_deg()+1;
+    int N = (p-1)*m_grid.get_elementNumber()+1;
+
+    std::cout<<"\tIncluding boundary conditions...";
+    if (work_type=="stationary")
+    {
+        for (const auto &bc : m_grid.get_BC())
+        {
+            int m = bc.m;
+            int I_glob = m*(p-1);
+            if (bc.bct==1)
+            {
+                for (int j=0; j<N; j++)
+                {
+                    int L_glob = I_glob + j*N;
+                    int L_glob_tr = j+I_glob*N;
+                    m_F1D[j]-=bc.bc_value*m_S1D[L_glob];
+                    m_S1D[L_glob]=0.0;
+                    m_S1D[L_glob_tr]=0.0;
+
+                    if(I_glob==j)
+                        m_S1D[L_glob]=1.0;
+                }
+
+                m_F1D[I_glob]=bc.bc_value;
+            }
+
+            else if (bc.bct==2)
+            {
+
+                if (I_glob == 0) 
+                {
+                m_F1D[I_glob] += bc.bc_value; 
+                }   
+                else 
+                {
+                    m_F1D[I_glob] -= bc.bc_value; 
+                }
+            }
+        }
+    }
+
+    if (work_type=="eigen")
+    {
+        for (const auto &bc : m_grid.get_BC())
+        {
+            int m = bc.m;
+            int I_glob = m*(p-1);
+            if (bc.bct==1)
+            {
+                
+                for (int j=0; j<N; j++)
+                {
+                    int L_glob = I_glob + j*N;
+                    int L_glob_tr=j+I_glob*N;
+
+                    m_S1D[L_glob]=0.0;
+                    m_M1D[L_glob]=0.0;
+
+                    m_S1D[L_glob_tr]=0.0;
+                    m_M1D[L_glob_tr]=0.0;
+
+                    if(I_glob==j)
+                    {
+                        m_S1D[L_glob]=1.0;
+                        m_M1D[L_glob]=1.0;
+                    }
+                }    
+
+
+            }
+
+            else if (bc.bct==2)
+            {
+                std::cout<<"NO EIGEN PROBLEM FOR NEUMAN CONDITION\n";
+            }
+        }
+    }
+    std::cout<<"DONE\n";
+
+}
+
+
+// ****************************************************
+
+// ****************** ASSEMBLERS *******************
+
+void Solver::Matrix_assembler(std::string work_type)
+{
+    int p = m_shapefunction.get_deg()+1;
+    std::vector<double> S_loc(p*p, 0.0);
+    int N = (p-1)*m_grid.get_elementNumber()+1; 
+
+    m_S1D.resize(N*N, 0.0);
+
+    std::cout<<"\tStifness assemble process start... ";
+
+    for (int m=0; m<m_grid.get_elementNumber(); m++)
+    {
+        S_loc.assign(S_loc.size(), 0.0);
+
+        local_1D_StifnessMatrix(S_loc, m);
+
+        for (int j=0; j<p; j++)
+        {
+            int J_glob = m*(p-1)+j;
+            for(int i=0; i<p; i++)
+            {
+                int I_glob=m*(p-1)+i;
+
+                int L_glob=I_glob+N*J_glob;
+                int l = i+p*j;
+                m_S1D[L_glob]+=S_loc[l];
+            }
+        }
+    }
+
+    std::cout<<"DONE\n";
+
+
+    if (work_type=="eigen")
+    {
+        std::cout<<"\tMass assemble process start... ";
+
+        std::vector<double> M_loc(p*p, 0.0);
+        m_M1D.resize(N*N, 0.0);
+        for (int m=0; m<m_grid.get_elementNumber(); m++)
+        {
+            M_loc.assign(M_loc.size(), 0.0);
+
+            local_1D_MassMatrix(M_loc, m);
+
+            for (int j=0; j<p; j++)
+            {
+                int J_glob = m*(p-1)+j;
+                for(int i=0; i<p; i++)
+                {
+                    int I_glob=m*(p-1)+i;
+
+                    int L_glob=I_glob+N*J_glob;
+                    int l = i+p*j;
+                    m_M1D[L_glob]+=M_loc[l];
+                }
+            }
+        }
+
+    std::cout<<"DONE\n";
+    }
+
+}
+
+void Solver::Vector_assembler()
+{
+    int p = m_shapefunction.get_deg()+1;
+    std::vector<double> F_loc(p, 0.0);
+    int N = (p-1)*m_grid.get_elementNumber()+1; 
+    m_F1D.resize(N, 0.0);
+
+    std::cout<<"\tLoad assemble process start... ";
+
+    for (int m=0; m<m_grid.get_elementNumber(); m++)
+    {
+        F_loc.assign(F_loc.size(), 0.0);
+
+        local_1D_LoadVector(F_loc, m);
+
+        for (int j=0; j<p; j++)
+        {
+            int J_glob = m*(p-1)+j;
+            m_F1D[J_glob]+=F_loc[j];
+        }
+    }
+
+    std::cout<<"DONE\n";
+
+}
+
+
+
+// ****************************************************
+
+// ****************** SOLVER STATIONARY 1 DIM *******************
+
+void Solver::stationary_1D_explicit()
+{
+    std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER START "<<std::string(4, '#')<<"\n\n";
+    std::cout<<"\t SOLVER MODE: stationary 1D explicit\n";
+    
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1; 
+    m_Q.resize(N);
+    Matrix_assembler("stationary");
+    Vector_assembler();
+    boundaryConditions("stationary");
+
+    Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
+
+    Q_e = m_physics.solver(m_S1D, m_F1D);
+
+    std::cout<<"\t\t\tPROCESS DONE\n";
+}
+
+void Solver::stationary_1D_implicit()
+{
+    std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER START "<<std::string(4, '#')<<"\n\n";
+    std::cout<<"\t SOLVER MODE: stationary 1D implicit (Picard Iteration) BUILD IN PROGRESS\n";
+    
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1;
+    m_Q.resize(N, 1.0);
+
+    double epsilon = 1e-4;
+    int iterrMax = 100;
+    int iterr = 0;
+    double error = 1.0;
+    double omega = 0.5;
+    Eigen::VectorXd Q_old(N);
+    Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
+
+    do
+    {
+        iterr++;
+        std::cout<<"\tIteration number = "<<iterr<<"\n";
+
+        Q_old = Q_e;
+
+        Matrix_assembler("stationary");
+        Vector_assembler();
+        boundaryConditions("stationary");
+
+        Eigen::VectorXd Q_new = m_physics.solver(m_S1D, m_F1D);
+
+        Q_e = Q_old + omega * (Q_new - Q_old);
+
+        error = (Q_e - Q_old).norm();
+
+        std::cout<<"\terror = "<<error<<"\n\n";
+
+    } while(error >= epsilon && iterr <= iterrMax);
+
+    std::cout<<"DONE\n";
+
+    //std::cout<<U_1D(0.6);
+}
+
+void Solver::Eigen_1D()
+{
+    std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER START "<<std::string(4, '#')<<"\n\n";
+    std::cout<<"\t SOLVER MODE: EIGEN PROBLEM 1D\n";
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1; 
+
+    Matrix_assembler("eigen");
+    boundaryConditions("eigen");
+
+    //std::cout<<m_S1D.size()<<" "<<m_M1D.size()<<"\n";
+    auto result = m_physics.EigenSolver(m_S1D, m_M1D);
+
+    m_eigenValues1D.resize(N);
+    m_eigenVectors1D.resize(N*N);
+
+    Eigen::Map<Eigen::VectorXd>(m_eigenValues1D.data(), N) = result.first;
+    Eigen::Map<Eigen::MatrixXd>(m_eigenVectors1D.data(), N, N) = result.second;
+
+
+    std::cout<<"\t\t\tPROCESS DONE\n";
+}
+
+//==============================================
+
+//================== SOLUTION ==================
+
+double Solver::U_1D(double x)
+{
+    int N = m_grid.get_elementNumber();
+    int p_deg = m_shapefunction.get_deg();
+    double tol=1e-12;
+
+    for (int m = 0; m < N; m++)
+    {
+        double x_left = m_grid.get_NodPosition(m);
+        double x_right = m_grid.get_NodPosition(m+1);
+
+        if (x >= x_left-tol && x <= x_right+tol)
+        {
+
+            double ksi = (2.0 * (x - x_left) / (x_right - x_left)) - 1.0;
+            
+            double u_val = 0.0;
+            for (int i = 0; i <= p_deg; i++)
+            {
+                int glob_idx = m * p_deg + i; 
+                u_val += m_Q[glob_idx] * m_shapefunction.Rphi_1D(ksi, i);
+            }
+            
+            return u_val;
+        }
+    }
+    return 0.0;
+}
+
+double Solver::U_1D(double x, int mode)
+{
+    int N = m_grid.get_elementNumber();
+    int p_deg = m_shapefunction.get_deg();
+    double tol=1e-12;
+
+    for (int m = 0; m < N; m++)
+    {
+        double x_left = m_grid.get_NodPosition(m);
+        double x_right = m_grid.get_NodPosition(m+1);
+
+        if (x >= x_left-tol && x <= x_right+tol)
+        {
+            double ksi = (2.0 * (x - x_left) / (x_right - x_left)) - 1.0;
+            
+            double u_val = 0.0;
+            for (int i = 0; i <= p_deg; i++)
+            {
+                int glob_idx = m * p_deg + i;
+
+                int l = glob_idx + mode*(p_deg*m_grid.get_elementNumber()+1); 
+                u_val += m_eigenVectors1D[l] * m_shapefunction.Rphi_1D(ksi, i);
+            }
+            
+            return u_val;
+        }
+    }
+    return 0.0;
+}
+
+//==============================================
+
+//================== SAVE DATA =================
+
+void Solver::saveSolution(std::string outdir, std::string work_type)
+{
+    if (work_type=="stationary")
+    {
+        std::cout<<"\t\t\tSaving data... ";
+        auto [x_start, x_end] = m_grid.get_RodInfo();
+        double x=x_start;
+
+        std::ofstream file(outdir+"/u.dat");
+
+        while (x<=x_end)
+        {
+            file<<x<<" "<<U_1D(x)<<"\n";
+            x+=m_dxSave;
+        }
+    
+        file<<x_end<<" "<<U_1D(x_end)<<"\n";
+
+        file.close();
+        std::cout<<"DONE\n";
+    }
+
+    else if (work_type=="eigen")
+    {
+        
+        std::ofstream file_eigenvalue(outdir+"/eigenvalue.dat");
+        
+        for (int mode=0; mode<m_shapefunction.get_deg()*m_grid.get_elementNumber()+1; mode++)
+        {
+            auto [x_start, x_end] = m_grid.get_RodInfo();
+            double x=x_start;
+
+            std::ofstream file_eigenvector(outdir+"/psi_" + std::to_string(mode) +".dat");
+
+            while(x<x_end)
+            {
+                file_eigenvector<<x<<" "<<U_1D(x, mode)<<"\n";
+                x+=m_dxSave;
+            }
+            
+            file_eigenvector<<x_end<<" "<<U_1D(x_end, mode)<<"\n";
+            file_eigenvector.close();
+
+            file_eigenvalue<<mode<<" "<<m_eigenValues1D[mode]<<"\n";
+        }
+
+        file_eigenvalue.close();
+    
+    }
+
+}
