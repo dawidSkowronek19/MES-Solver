@@ -23,6 +23,14 @@ double Physics::B(double x, double u) {return 0.0;}
 double Physics::C(double x, double u) {return 0.0;}
 double Physics::D(double x, double u) {return 0.0;}
 
+double Physics::B(double x) {return 0.0;}
+double Physics::C(double x) {return 0.0;}
+double Physics::D(double x) {return 0.0;}
+
+double Physics::dB_du(double x, double u) {return 0.0;}
+double Physics::dC_du(double x, double u) {return 0.0;}
+double Physics::dD_du(double x, double u) {return 0.0;}
+
 
 
 
@@ -35,7 +43,7 @@ Poisson::Poisson(MathSolver &math) : Physics(math)
     std::cout<<"Poisson\n";
 }
 
-double Poisson::D(double x, double u) {return -1.0;}
+double Poisson::D(double x) {return -1.0;}
 
 
 Eigen::VectorXd Poisson::solver(std::vector<double> &S, std::vector<double> &F)
@@ -57,6 +65,14 @@ double GeneralPDE::B(double x, double u) {return 0.0;}
 double GeneralPDE::C(double x, double u) {return 0.0;}
 double GeneralPDE::D(double x, double u) {return 0.0;}
 
+double GeneralPDE::B(double x) {return 0.0;}
+double GeneralPDE::C(double x) {return 0.0;}
+double GeneralPDE::D(double x) {return 0.0;}
+
+double GeneralPDE::dB_du(double x, double u) {return 0.0;}
+double GeneralPDE::dC_du(double x, double u) {return 0.0;}
+double GeneralPDE::dD_du(double x, double u) {return 0.0;}
+
 
 Eigen::VectorXd GeneralPDE::solver(std::vector<double> &S, std::vector<double> &F)
 {
@@ -76,7 +92,13 @@ GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math) : Physics(math)
 }
 
 double GeneralSymetricPDE::C(double x, double u) {return 0.0;}
-double GeneralSymetricPDE::D(double x, double u) {return 2.0*u*u*u;}
+double GeneralSymetricPDE::D(double x, double u) {return 2*u*u*u;}
+
+double GeneralSymetricPDE::dC_du(double x, double u) {return 0.0;}
+double GeneralSymetricPDE::dD_du(double x, double u) {return 6*u*u;}
+
+double GeneralSymetricPDE::C(double x) {return 0.0;}
+double GeneralSymetricPDE::D(double x) {return 0.0;}
 
 
 

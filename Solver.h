@@ -22,8 +22,8 @@ class Solver{
         Solver(Grid_1D &Grid, ShapeFunction &shapefunction, Physics &physics);
         ~Solver();
         void saveSolution(std::string outdir, std::string work_type);
-        void stationary_1D_explicit();
-        void stationary_1D_implicit();
+        void stationary_1D_linear();
+        void stationary_1D_nonlinear();
         void Eigen_1D();
 
     private:
@@ -39,6 +39,9 @@ class Solver{
         std::vector<double> m_eigenValues1D;
         std::vector<double> m_eigenVectors1D;
 
+        std::vector<double> m_St1D;
+        std::vector<double> m_R1D;
+
 
         int m_integrationOrder;
         double m_dxSave;
@@ -51,13 +54,16 @@ class Solver{
         double *m_local_weights;
 
         //solver essentials
-        void local_1D_StifnessMatrix(std::vector<double> &S, int m);
-        void local_1D_LoadVector(std::vector<double> &F, int m);
+        void local_1D_linear_StifnessMatrix(std::vector<double> &S, int m);
+        void local_1D_linear_LoadVector(std::vector<double> &F, int m);
+        void local_1D_nonlinear_StifnessMatrix(std::vector<double> &S, int m);
+        void local_1D_nonlinear_LoadVector(std::vector<double> &F, int m);
         void local_1D_MassMatrix(std::vector<double> &M, int m);
+        void local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m);
 
         //assemblers
-        void Matrix_assembler(std::string work_type="");
-        void Vector_assembler();
+        void Matrix_assembler(std::string work_type, std::vector<double> &matrix);
+        void Vector_assembler(std::string work_type);
 
         //boundary conditions
         void boundaryConditions(std::string work_type);

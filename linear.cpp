@@ -31,7 +31,7 @@ int main()
 
     Solver solution1(mesh1, linear, PDE_SYM);
     //solution1.Eigen_1D();
-    solution1.stationary_1D_implicit();
+    solution1.stationary_1D_nonlinear();
     solution1.saveSolution(file_dir, compute_mode);
     /*
    Solver EigenSolution(mesh1, linear, PDE);

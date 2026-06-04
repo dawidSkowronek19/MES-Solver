@@ -56,4 +56,5 @@ plt.axhline(0, color='black', linewidth=0.8, linestyle='-', alpha=0.5)
 plt.tight_layout()
 
 # Pokazanie obu okien na raz
+plt.show()
 plt.savefig("./outdir_stationary/u(x).png")
