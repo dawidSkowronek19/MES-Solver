@@ -1,0 +1,5 @@
+
+*Makefile linguist-documentation
+*.mk linguist-documentation
+
+build/** linguist-vendored
