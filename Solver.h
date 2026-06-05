@@ -56,17 +56,17 @@ private:
     double *m_local_weights;
 
     // solver essentials
-    static double retOne(double x, double t);
+    static double retOne(double x);
     void local_1D_linear_StifnessMatrix(std::vector<double> &S, int m);
     void local_1D_linear_LoadVector(std::vector<double> &F, int m);
     void local_1D_nonlinear_StifnessMatrix(std::vector<double> &S, int m);
     void local_1D_nonlinear_LoadVector(std::vector<double> &F, int m);
-    void local_1D_MassMatrix(std::vector<double> &M, int m, double (*f)(double, double), double t);
+    void local_1D_MassMatrix(std::vector<double> &M, int m, std::function<double(double)> f);
     void local_1D_MassMatrix(std::vector<double> &M, int m);
     void local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m);
 
     // assemblers
-    void Matrix_assembler(std::string work_type, std::vector<double> &matrix, double (*f)(double x, double t)=nullptr, double t=0.0);
+    void Matrix_assembler(std::string work_type, std::vector<double> &matrix, std::function<double(double)> f=nullptr);
     void Vector_assembler(std::string work_type);
 
     // boundary conditions

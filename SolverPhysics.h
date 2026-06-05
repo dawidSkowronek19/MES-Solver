@@ -16,8 +16,8 @@ class Physics{
         virtual double B(double x, double u);
         virtual double C(double x, double u);
         virtual double D(double x, double u);
-        virtual double E(double x, double u);
-        virtual double F(double x, double u);
+        //virtual double E(double x, double u);
+        //virtual double F(double x, double u);
 
         virtual double dB_du(double x, double u);
         virtual double dC_du(double x, double u);
@@ -26,6 +26,8 @@ class Physics{
         virtual double B(double x);
         virtual double C(double x);
         virtual double D(double x);
+        virtual double E(double x);
+        virtual double F(double x);
         virtual double getCurrentTime();
 
     protected:
@@ -67,6 +69,8 @@ class GeneralPDE : public Physics{
         double B(double x) override;
         double C(double x) override;
         double D(double x) override;
+        double E(double x) override;
+        double F(double x) override;
 
 };
 
@@ -86,6 +90,8 @@ class GeneralSymetricPDE : public Physics{
 
         double C(double x) override;
         double D(double x) override;
+        double E(double x) override;
+        double F(double x) override;
 
 };
 

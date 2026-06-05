@@ -16,8 +16,8 @@ int main()
     Grid_1D mesh1(0.0, 1.0, 0.5, 10.0, 12, 200);
 
     std::vector<BoundaryCondition> bc;
-    bc.push_back({0, 1, 1.0});
-    bc.push_back({200, 1, 0.5});
+    bc.push_back({0, 1, 0.0});
+    bc.push_back({200, 1, 0.0});
     //bc.push_back({150, 2, 0.0});
     mesh1.set_boundaryConditions(bc);
     mesh1.buildGrid();
@@ -25,11 +25,11 @@ int main()
 
     MathSolver Math;
     ShapeFunction linear(2);
-    //GeneralPDE PDE(Math);
-    GeneralSymetricPDE PDE_SYM(Math);
+    GeneralPDE PDE(Math);
+    //GeneralSymetricPDE PDE_SYM(Math);
     //Poisson ps(Math);
 
-    Solver solution1(mesh1, linear, PDE_SYM);
+    Solver solution1(mesh1, linear, PDE);
     //solution1.Eigen_1D();
     solution1.stationary_1D_nonlinear();
     solution1.saveSolution(file_dir, compute_mode);

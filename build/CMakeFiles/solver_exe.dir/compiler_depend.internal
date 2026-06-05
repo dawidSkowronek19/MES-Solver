@@ -166,6 +166,7 @@ CMakeFiles/solver_exe.dir/Solver.cpp.o
  /usr/include/c++/13/cstdio
  /usr/include/c++/13/ext/type_traits.h
  /usr/include/c++/13/fstream
+ /usr/include/c++/13/functional
  /usr/include/c++/13/ios
  /usr/include/c++/13/iostream
  /usr/include/c++/13/istream
@@ -808,6 +809,7 @@ CMakeFiles/solver_exe.dir/linear.cpp.o
  /usr/include/c++/13/ext/type_traits.h
  /usr/include/c++/13/filesystem
  /usr/include/c++/13/fstream
+ /usr/include/c++/13/functional
  /usr/include/c++/13/iomanip
  /usr/include/c++/13/ios
  /usr/include/c++/13/iosfwd

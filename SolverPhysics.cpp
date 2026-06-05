@@ -26,6 +26,9 @@ double Physics::D(double x, double u) {return 0.0;}
 double Physics::B(double x) {return 0.0;}
 double Physics::C(double x) {return 0.0;}
 double Physics::D(double x) {return 0.0;}
+double Physics::E(double x) {return 0.0;}
+double Physics::F(double x) {return 0.0;}
+
 
 double Physics::dB_du(double x, double u) {return 0.0;}
 double Physics::dC_du(double x, double u) {return 0.0;}
@@ -79,7 +82,7 @@ double GeneralPDE::C(double x, double u)
 double GeneralPDE::D(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return 1.0;
 }
 
 double GeneralPDE::B(double x) 
@@ -93,6 +96,16 @@ double GeneralPDE::C(double x)
     return 0.0;
 }
 double GeneralPDE::D(double x) 
+{
+    double t=getCurrentTime();
+    return 1.0;
+}
+double GeneralPDE::E(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::F(double x) 
 {
     double t=getCurrentTime();
     return 0.0;
@@ -160,6 +173,16 @@ double GeneralSymetricPDE::C(double x)
     return 0.0;
 }
 double GeneralSymetricPDE::D(double x) 
+{
+    double t=getCurrentTime();
+    return 1.0;
+}
+double GeneralSymetricPDE::E(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralSymetricPDE::F(double x) 
 {
     double t=getCurrentTime();
     return 0.0;

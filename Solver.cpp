@@ -33,7 +33,7 @@ Solver::~Solver()
     std::cout<<std::string(60, '=')<<"\n";
 }
 
-double Solver::retOne(double x, double t) {return 1.0;}
+double Solver::retOne(double x) {return 1.0;}
 //===========================================================
 
 //====================== SOLVER ============================
@@ -172,7 +172,7 @@ void Solver::local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m)
 }
 
 
-void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<double(double, double)> f, double t)
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<double(double)> f)
 {
     double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
     int p = m_shapefunction.get_deg()+1;
@@ -186,7 +186,7 @@ void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<do
             {
                 double ksi = m_local_nodes[k]; 
                 double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
-                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*f(x_ksi, t)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
+                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*f(x_ksi)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
             }
 
         }
@@ -195,7 +195,7 @@ void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<do
 
 void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
 {
-    local_1D_MassMatrix(M, m, retOne, 0.0);
+    local_1D_MassMatrix(M, m, retOne);
 }
 // ****************************************************
 
@@ -311,7 +311,7 @@ void Solver::boundaryConditions(std::string work_type)
 
 // ****************** ASSEMBLERS *******************
 
-void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix, double (*f)(double x, double t), double t)
+void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix, std::function<double(double)> f)
 {
     int p = m_shapefunction.get_deg()+1;
     std::vector<double> S_loc(p*p, 0.0);
@@ -352,9 +352,9 @@ void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix
     }
     else if (work_type =="time_dependent")
     {
-        local_matrix_func = [this, f, t](std::vector<double>& S, int m) 
+        local_matrix_func = [this, f](std::vector<double>& S, int m) 
         { 
-            this->local_1D_MassMatrix(S, m, f, t); 
+            this->local_1D_MassMatrix(S, m, f); 
         };
     }
     else 
@@ -534,13 +534,15 @@ void Solver::timeDependent_1D_linear()
 
     double t=0.0;
     double t_max=1.0;
+    int f=10;
+    int time_idx=0;
     m_physics.connectTime(&t);
 
     while(t<=t_max)
     {
-        //Matrix_assembler("time_dependent", ME, [&m_physics](double x, double u){return m_physics.E(x,u)}, t);
-        //Matrix_assembler("time_dependent", MF, [&m_physics](double x, double u), t);
-
+        Matrix_assembler("time_dependent", ME, [this](double x){return m_physics.E(x);});
+        Matrix_assembler("time_dependent", MF, [this](double x){return m_physics.F(x);});
+        Matrix_assembler("stiffness_linear", m_S1D);
         Eigen::MatrixXd S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
         Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*MF_e)*d2_Q_e_OLD + 
                                 (1.0/(beta*dt)*ME_e-(1.0+gamma/beta)*MF_e)*d_Q_e_OLD + 
@@ -548,6 +550,10 @@ void Solver::timeDependent_1D_linear()
 
         Q_e = S_eff_e.partialPivLu().solve(F_eff);
 
+        if(time_idx%f==0)
+        {
+            saveSolution("outdir", "time_dependent");
+        }
 
         //Q', Q'' computing from Newmark formulas
         for (int j=0; j<N; j++)
@@ -660,7 +666,7 @@ void Solver::saveSolution(std::string outdir, std::string work_type)
         auto [x_start, x_end] = m_grid.get_RodInfo();
         double x=x_start;
 
-        std::ofstream file(outdir+"/u.dat");
+        std::ofstream file(outdir+"/u"+std::to_string(m_physics.getCurrentTime())+".dat");
 
         while (x<=x_end)
         {
