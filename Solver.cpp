@@ -33,7 +33,7 @@ Solver::~Solver()
     std::cout<<std::string(60, '=')<<"\n";
 }
 
-
+double Solver::retOne(double x, double t) {return 1.0;}
 //===========================================================
 
 //====================== SOLVER ============================
@@ -172,7 +172,7 @@ void Solver::local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m)
 }
 
 
-void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, double (*f)(double x , double t), double t)
 {
     double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
     int p = m_shapefunction.get_deg()+1;
@@ -186,11 +186,16 @@ void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
             {
                 double ksi = m_local_nodes[k]; 
                 double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
-                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
+                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*f(x_ksi, t)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
             }
 
         }
     }
+}
+
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
+{
+    local_1D_MassMatrix(M, m, retOne, 0.0);
 }
 // ****************************************************
 
@@ -306,7 +311,7 @@ void Solver::boundaryConditions(std::string work_type)
 
 // ****************** ASSEMBLERS *******************
 
-void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix)
+void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix, double (*f)(double x, double t), double t)
 {
     int p = m_shapefunction.get_deg()+1;
     std::vector<double> S_loc(p*p, 0.0);
@@ -315,24 +320,43 @@ void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix
     matrix.resize(N*N, 0.0);
 
     std::cout<<"\t"<<work_type<<" assemble process start... ";
-    void (Solver::*local_matrix_func)(std::vector<double>&, int) = nullptr;
+    std::function<void(std::vector<double>&, int)> local_matrix_func = nullptr;
 
     if (work_type == "stiffness_linear") 
     {
-        local_matrix_func = &Solver::local_1D_linear_StifnessMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_linear_StifnessMatrix(S, m); 
+        };
     }
     else if (work_type == "stiffness_nonlinear") 
     {
-        local_matrix_func = &Solver::local_1D_nonlinear_StifnessMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_nonlinear_StifnessMatrix(S, m); 
+        };
     } 
     else if (work_type == "eigen") 
     {
-        local_matrix_func = &Solver::local_1D_MassMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_MassMatrix(S, m); 
+        };
     } 
     else if (work_type == "tangent") 
     {
-        local_matrix_func = &Solver::local_1D_StiffnessTangentMatrix;
-    } 
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_StiffnessTangentMatrix(S, m); 
+        };
+    }
+    else if (work_type =="time_dependent")
+    {
+        local_matrix_func = [this, f, t](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_MassMatrix(S, m, f, t); 
+        };
+    }
     else 
     {
         std::cout << "[ Error ]: WRONG WORK_TYPE: " << work_type << "\n";
@@ -343,7 +367,7 @@ void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix
     {
         S_loc.assign(S_loc.size(), 0.0);
 
-        (this->*local_matrix_func)(S_loc, m);
+    local_matrix_func(S_loc, m);
 
         for (int j=0; j<p; j++)
         {
@@ -479,6 +503,45 @@ void Solver::stationary_1D_nonlinear()
     }
 
     std::cout<<"DONE\n";
+}
+
+// ****************************************************
+
+// **************** SOLVER TIME DEPENDENT 1 DIM ********************
+
+void Solver::timeDependent_1D_linear()
+{
+    // WORK IN PROGRESS
+    
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1;
+    int p = m_shapefunction.get_deg()+1;
+
+
+    double beta=0.25;
+    double gamma=0.5;
+    double dt=0.01;
+
+    m_Q.resize(N, 1.0);
+    Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
+    Eigen::Map<Eigen::VectorXd> F_e(m_F1D.data(), N);
+    Eigen::VectorXd Q_e_OLD(N), d_Q_e_OLD(N), d2_Q_e_OLD(N);// zainicjalizowac warunkami poczatkowymi i brzegowymi
+    std::vector<double> ME(N*N,0.0), MF(N*N,0.0);
+
+    Eigen::Map<Eigen::MatrixXd> ME_e(ME.data(), N, N);
+    Eigen::Map<Eigen::MatrixXd> MF_e(MF.data(), N, N);
+    Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
+
+   // Matrix_assembler("time_dependent", ME, )
+
+    Eigen::MatrixXd S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
+    Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*MF_e)*d2_Q_e_OLD + 
+                            (1.0/(beta*dt)*ME_e-(1.0+gamma/beta)*MF_e)*d_Q_e_OLD + 
+                            (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e_OLD - F_e;
+
+    Q_e = S_eff_e.partialPivLu().solve(F_eff);
+
+
+
 }
 
 void Solver::Eigen_1D()
