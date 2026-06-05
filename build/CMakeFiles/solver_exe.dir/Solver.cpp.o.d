@@ -19,10 +19,10 @@ CMakeFiles/solver_exe.dir/Solver.cpp.o: \
  /usr/include/c++/13/bits/fstream.tcc \
  /usr/include/c++/13/bits/cxxabi_forced.h /usr/include/c++/13/cerrno \
  /usr/include/errno.h /usr/include/c++/13/complex \
- /usr/include/gsl/gsl_integration.h /usr/include/c++/13/stdlib.h \
- /usr/include/gsl/gsl_math.h /usr/include/c++/13/math.h \
- /usr/include/gsl/gsl_sys.h /usr/include/gsl/gsl_inline.h \
- /usr/include/gsl/gsl_machine.h \
+ /usr/include/c++/13/functional /usr/include/gsl/gsl_integration.h \
+ /usr/include/c++/13/stdlib.h /usr/include/gsl/gsl_math.h \
+ /usr/include/c++/13/math.h /usr/include/gsl/gsl_sys.h \
+ /usr/include/gsl/gsl_inline.h /usr/include/gsl/gsl_machine.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/float.h \
  /usr/include/gsl/gsl_precision.h /usr/include/gsl/gsl_types.h \

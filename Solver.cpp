@@ -172,7 +172,7 @@ void Solver::local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m)
 }
 
 
-void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, double (*f)(double x , double t), double t)
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<double(double, double)> f, double t)
 {
     double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
     int p = m_shapefunction.get_deg()+1;
@@ -527,20 +527,38 @@ void Solver::timeDependent_1D_linear()
     Eigen::VectorXd Q_e_OLD(N), d_Q_e_OLD(N), d2_Q_e_OLD(N);// zainicjalizowac warunkami poczatkowymi i brzegowymi
     std::vector<double> ME(N*N,0.0), MF(N*N,0.0);
 
+
     Eigen::Map<Eigen::MatrixXd> ME_e(ME.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> MF_e(MF.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
 
-   // Matrix_assembler("time_dependent", ME, )
+    double t=0.0;
+    double t_max=1.0;
+    m_physics.connectTime(&t);
 
-    Eigen::MatrixXd S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
-    Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*MF_e)*d2_Q_e_OLD + 
-                            (1.0/(beta*dt)*ME_e-(1.0+gamma/beta)*MF_e)*d_Q_e_OLD + 
-                            (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e_OLD - F_e;
+    while(t<=t_max)
+    {
+        //Matrix_assembler("time_dependent", ME, [&m_physics](double x, double u){return m_physics.E(x,u)}, t);
+        //Matrix_assembler("time_dependent", MF, [&m_physics](double x, double u), t);
 
-    Q_e = S_eff_e.partialPivLu().solve(F_eff);
+        Eigen::MatrixXd S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
+        Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*MF_e)*d2_Q_e_OLD + 
+                                (1.0/(beta*dt)*ME_e-(1.0+gamma/beta)*MF_e)*d_Q_e_OLD + 
+                                (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e_OLD - F_e;
+
+        Q_e = S_eff_e.partialPivLu().solve(F_eff);
 
 
+        //Q', Q'' computing from Newmark formulas
+        for (int j=0; j<N; j++)
+        {
+            double d2qTMP = d2_Q_e_OLD(j);
+            d2_Q_e_OLD(j) = 1.0/(beta*dt*dt)*(Q_e(j)-Q_e_OLD(j))-1.0/(beta*dt)*d_Q_e_OLD(j) + (1.0-1.0/(2.0*beta))*d2_Q_e_OLD(j);
+            d_Q_e_OLD(j) = (1.0/gamma/beta)*d_Q_e_OLD(j) + (1-gamma/(2.0*beta))*dt*d2qTMP + gamma/(beta*dt)*(Q_e(j)-Q_e_OLD(j));
+
+        }
+    
+    }
 
 }
 

@@ -8,6 +8,7 @@ class Physics{
         Physics(MathSolver &math);
         virtual ~Physics() = default;
 
+        virtual void connectTime(const double *t);
         
         virtual Eigen::VectorXd solver(std::vector<double> &S, std::vector<double> &F)=0;
         virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> EigenSolver(std::vector<double> &S, std::vector<double> &M);
@@ -15,6 +16,8 @@ class Physics{
         virtual double B(double x, double u);
         virtual double C(double x, double u);
         virtual double D(double x, double u);
+        virtual double E(double x, double u);
+        virtual double F(double x, double u);
 
         virtual double dB_du(double x, double u);
         virtual double dC_du(double x, double u);
@@ -23,9 +26,12 @@ class Physics{
         virtual double B(double x);
         virtual double C(double x);
         virtual double D(double x);
+        virtual double getCurrentTime();
 
     protected:
         MathSolver &m_math;
+    private:
+        const double *m_t = nullptr;
 };
 
 class Poisson : public Physics{
