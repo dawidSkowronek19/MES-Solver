@@ -13,7 +13,7 @@ int main()
     std::string file_dir = "./outdir_"+compute_mode;
     std::filesystem::create_directories(file_dir);
 
-    Grid_1D mesh1(0.0, 1.0, 0.5, 10.0, 12, 200);
+    Grid_1D mesh1(-1.0, 1.0, 0.5, 10.0, 12, 200);
 
     std::vector<BoundaryCondition> bc;
     bc.push_back({0, 1, 0.0});
@@ -25,14 +25,15 @@ int main()
 
     MathSolver Math;
     ShapeFunction linear(2);
-    GeneralPDE PDE(Math);
-    //GeneralSymetricPDE PDE_SYM(Math);
+    //GeneralPDE PDE(Math);
+    GeneralSymetricPDE PDE_SYM(Math);
     //Poisson ps(Math);
 
-    Solver solution1(mesh1, linear, PDE);
+    Solver solution1(mesh1, linear, PDE_SYM);
     //solution1.Eigen_1D();
-    solution1.stationary_1D_nonlinear();
-    solution1.saveSolution(file_dir, compute_mode);
+    //solution1.stationary_1D_nonlinear();
+    solution1.timeDependent_1D_linear();
+    //solution1.saveSolution(file_dir, compute_mode);
     /*
    Solver EigenSolution(mesh1, linear, PDE);
    EigenSolution.Matrix_assembler("eigen");

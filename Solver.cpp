@@ -512,7 +512,8 @@ void Solver::stationary_1D_nonlinear()
 void Solver::timeDependent_1D_linear()
 {
     // WORK IN PROGRESS
-    
+    std::cout<<std::string(60, '=')<<"\n";
+    std::cout<<"\t\t TIME DEPENDENT SOLVER\n";
     int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1;
     int p = m_shapefunction.get_deg()+1;
 
@@ -522,34 +523,99 @@ void Solver::timeDependent_1D_linear()
     double dt=0.01;
 
     m_Q.resize(N, 1.0);
+    m_S1D.resize(N*N, 0.0);
+    m_F1D.resize(N,0.0);
     Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
-    Eigen::Map<Eigen::VectorXd> F_e(m_F1D.data(), N);
-    Eigen::VectorXd Q_e_OLD(N), d_Q_e_OLD(N), d2_Q_e_OLD(N);// zainicjalizowac warunkami poczatkowymi i brzegowymi
+    Eigen::VectorXd d_Q_e(N), d2_Q_e(N);
     std::vector<double> ME(N*N,0.0), MF(N*N,0.0);
 
+    // ================= FOR TESTS ===================
+    std::cout<<"\t Computing initial values... ";
+    for (int m=0; m<m_grid.get_elementNumber(); m++)
+    {
+        double x_left = m_grid.get_NodPosition(m);
+        double x_right = m_grid.get_NodPosition(m+1);
+
+        for (int i=0; i<p; i++)
+        {
+            int glob_idx = m*(p-1) + i;
+            double x = x_left+(double(i)/double(p-1))*(x_right-x_left);
+
+            Q_e(glob_idx) = exp(-(x-0.5)*(x-0.5)*200.0)+ exp(-(x+0.5)*(x+0.5)*200.0);
+            d_Q_e(glob_idx)=0.0;
+            d2_Q_e(glob_idx)=0.0; //for tests
+        }
+    }
+
+    std::cout<<"DONE\n";
+
+    
 
     Eigen::Map<Eigen::MatrixXd> ME_e(ME.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> MF_e(MF.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
+    Eigen::Map<Eigen::VectorXd> F_e(m_F1D.data(), N);
 
     double t=0.0;
-    double t_max=1.0;
+    double t_max=5.0;
     int f=10;
     int time_idx=0;
     m_physics.connectTime(&t);
 
     while(t<=t_max)
     {
+        
+        std::cout<<"\t\tTIME= "<<t<<"\n";
+
+        std::fill(ME.begin(), ME.end(), 0.0);
+        std::fill(MF.begin(), MF.end(), 0.0);
+        std::fill(m_S1D.begin(), m_S1D.end(), 0.0);
+        std::fill(m_F1D.begin(), m_F1D.end(), 0.0);
+
+
         Matrix_assembler("time_dependent", ME, [this](double x){return m_physics.E(x);});
         Matrix_assembler("time_dependent", MF, [this](double x){return m_physics.F(x);});
         Matrix_assembler("stiffness_linear", m_S1D);
+        Vector_assembler("load_linear");
+
+        
+        std::cout<<"\tBuilding effective Stiffness Matrix & Load Vector...";
         Eigen::MatrixXd S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
-        Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*MF_e)*d2_Q_e_OLD + 
-                                (1.0/(beta*dt)*ME_e-(1.0+gamma/beta)*MF_e)*d_Q_e_OLD + 
-                                (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e_OLD - F_e;
+        Eigen::VectorXd F_eff = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*dt*MF_e)*d2_Q_e + 
+                                (1.0/(beta*dt)*ME_e+(-1.0+gamma/beta)*MF_e)*d_Q_e + 
+                            (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e - F_e;
 
+        std::cout<<"DONE\n";
+        std::cout<<"BOUNDARY CONDITIONS\n";
+        for (const auto &bc : m_grid.get_BC())
+        {
+            if (bc.bct == 1)
+            {
+                int I_glob = bc.m * (p - 1); 
+                double bc_val = bc.bc_value;
+
+                for (int j = 0; j < N; j++)
+                {
+                    if (j != I_glob) {
+                        F_eff(j) -= S_eff_e(j, I_glob) * bc_val;
+                    }
+                }
+                for (int j = 0; j < N; j++)
+                {
+                    S_eff_e(I_glob, j) = 0.0;
+                    S_eff_e(j, I_glob) = 0.0;
+                }
+
+                S_eff_e(I_glob, I_glob) = 1.0;
+                F_eff(I_glob) = bc_val;
+            }
+        }
+
+        std::cout<<"DONE\n";
+        Eigen::VectorXd Q_prev = Q_e;
+        std::cout<<"\tSolving system of equations...\n";
         Q_e = S_eff_e.partialPivLu().solve(F_eff);
-
+        std::cout<<"DONE\n";
         if(time_idx%f==0)
         {
             saveSolution("outdir", "time_dependent");
@@ -558,12 +624,30 @@ void Solver::timeDependent_1D_linear()
         //Q', Q'' computing from Newmark formulas
         for (int j=0; j<N; j++)
         {
-            double d2qTMP = d2_Q_e_OLD(j);
-            d2_Q_e_OLD(j) = 1.0/(beta*dt*dt)*(Q_e(j)-Q_e_OLD(j))-1.0/(beta*dt)*d_Q_e_OLD(j) + (1.0-1.0/(2.0*beta))*d2_Q_e_OLD(j);
-            d_Q_e_OLD(j) = (1.0/gamma/beta)*d_Q_e_OLD(j) + (1-gamma/(2.0*beta))*dt*d2qTMP + gamma/(beta*dt)*(Q_e(j)-Q_e_OLD(j));
-
+            bool isDirichlet = false;
+            for (const auto &bc : m_grid.get_BC()) 
+            {
+                if (bc.bct == 1 && bc.m * (p - 1) == j) isDirichlet = true;
+            }
+            double d2qTMP = d2_Q_e(j);
+            if (!isDirichlet)
+            {
+                d2_Q_e(j) = 1.0/(beta*dt*dt)*(Q_e(j)-Q_prev(j))-1.0/(beta*dt)*d_Q_e(j) + (1.0-1.0/(2.0*beta))*d2_Q_e(j);
+                d_Q_e(j) = (1.0-gamma/beta)*d_Q_e(j) + (1-gamma/(2.0*beta))*dt*d2qTMP + gamma/(beta*dt)*(Q_e(j)-Q_prev(j));
+            }
+            else
+            {
+                d2_Q_e(j)=0.0;
+                d_Q_e(j)=0.0;
+            }
         }
-    
+
+        //FOR TESTS
+        
+        t+=dt;
+        time_idx++;
+
+        std::cout<<"\n\n";
     }
 
 }
@@ -660,7 +744,7 @@ double Solver::U_1D(double x, int mode)
 
 void Solver::saveSolution(std::string outdir, std::string work_type)
 {
-    if (work_type=="stationary")
+    if (work_type=="stationary" || work_type=="time_dependent")
     {
         std::cout<<"\t\t\tSaving data... ";
         auto [x_start, x_end] = m_grid.get_RodInfo();

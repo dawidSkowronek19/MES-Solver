@@ -175,12 +175,12 @@ double GeneralSymetricPDE::C(double x)
 double GeneralSymetricPDE::D(double x) 
 {
     double t=getCurrentTime();
-    return 1.0;
+    return 0.0;
 }
 double GeneralSymetricPDE::E(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return 1.0;
 }
 double GeneralSymetricPDE::F(double x) 
 {
