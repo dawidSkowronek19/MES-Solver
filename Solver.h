@@ -8,6 +8,7 @@
 #include <fstream>
 #include <complex>
 #include <functional>
+#include <tuple>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_splinalg.h>
 #include <Eigen/Dense>
@@ -25,15 +26,15 @@ public:
     void saveSolution(std::string outdir, std::string work_type);
     void stationary_1D_linear();
     void stationary_1D_nonlinear();
-
     void timeDependent_1D_linear();
     void Eigen_1D();
+    void initialValues(std::function<double(double)> u, std::function<double(double)> v);
 
 private:
     Grid_1D &m_grid;
     ShapeFunction &m_shapefunction;
     Physics &m_physics;
-    std::vector<double> m_Q, m_U;
+    std::vector<double> m_Q, m_dQ, m_d2Q;
 
     std::vector<double> m_S1D;
     std::vector<double> m_F1D;
@@ -70,7 +71,7 @@ private:
     void Vector_assembler(std::string work_type);
 
     // boundary conditions
-    void boundaryConditions(std::string work_type);
+    void boundaryConditions(std::string work_type, std::vector<double> &S, std::vector<double> &F);
 
     // solution
 

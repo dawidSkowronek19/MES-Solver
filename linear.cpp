@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <string>
 
+double u(double x) {return exp(-x*x*10.0);}
+double v(double x) {return 0.0;}
+
 int main()
 {
     std::cout<<std::string(60, '*')<<"\n\n";
@@ -17,7 +20,7 @@ int main()
 
     std::vector<BoundaryCondition> bc;
     bc.push_back({0, 1, 0.0});
-    bc.push_back({200, 1, 0.0});
+    bc.push_back({200, 2, 0.0});
     //bc.push_back({150, 2, 0.0});
     mesh1.set_boundaryConditions(bc);
     mesh1.buildGrid();
@@ -32,6 +35,7 @@ int main()
     Solver solution1(mesh1, linear, PDE_SYM);
     //solution1.Eigen_1D();
     //solution1.stationary_1D_nonlinear();
+    solution1.initialValues(u,v);
     solution1.timeDependent_1D_linear();
     //solution1.saveSolution(file_dir, compute_mode);
     /*
