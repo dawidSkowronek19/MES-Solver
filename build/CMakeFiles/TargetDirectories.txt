@@ -1,3 +1,0 @@
-/home/skowronek/projects/FEM/rod_shape/build/CMakeFiles/solver_exe.dir
-/home/skowronek/projects/FEM/rod_shape/build/CMakeFiles/edit_cache.dir
-/home/skowronek/projects/FEM/rod_shape/build/CMakeFiles/rebuild_cache.dir
