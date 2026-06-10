@@ -1,6 +1,7 @@
 # C++ Finite Element Method (FEM) Solver
 
-This repository hosts a Finite Element Method (FEM) solver written in C++. The ultimate goal of this project is to build a robust, highly optimized, and user-friendly tool for solving various differential equations.
+This repository hosts a Finite Element Method (FEM) solver written in C++. The ultimate goal of this project is to build a robust, highly optimized, and user-friendly tool for solving stationary PDE/time dependent PDE/ eigen problems in three dimensional spacetime with GUI and CAD reader for geometry
+
 
 ## Current Status
 The current stable baseline version is in branch main
@@ -39,4 +40,10 @@ To enforce a clear separation of concerns, the core logic has been split into de
 - **Nonlinear Stationary Solver (WIP):** Added support for nonlinear stationary problems. The current implementation utilizes the Newton-Raphson iteration methodto resolve nonlinearities. *Note: This feature is actively being developed (Work in Progress).*  
 **6. Quality of Life Improvements**  
 - **Automated File Management:** The application now automatically creates the necessary directory tree for storing output results and temporary simulation files. No manual folder  
+
+
+
+# IN ORDER TO COMPILE: 
+cmake --build ./build/ -j"X" where X= nb of cores used for compiling
+
 

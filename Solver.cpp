@@ -33,8 +33,40 @@ Solver::~Solver()
     std::cout<<std::string(60, '=')<<"\n";
 }
 
-
+double Solver::retOne(double x) {return 1.0;}
 //===========================================================
+
+//====================== Initial Values ====================
+
+void Solver::initialValues(std::function<double(double)> u, std::function<double(double)> v)
+{
+    std::cout<<"\t Computing initial values... ";
+    int p = m_shapefunction.get_deg()+1;
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1;
+
+    m_Q.resize(N);
+    m_dQ.resize(N);
+    m_d2Q.resize(N);
+    
+    
+    for (int m=0; m<m_grid.get_elementNumber(); m++)
+    {
+        double x_left = m_grid.get_NodPosition(m);
+        double x_right = m_grid.get_NodPosition(m+1);
+
+        for (int i=0; i<p; i++)
+        {
+            int glob_idx = m*(p-1) + i;
+            double x = x_left+(double(i)/double(p-1))*(x_right-x_left);
+
+            m_Q[glob_idx] = u(x);
+            m_dQ[glob_idx]=v(x);
+            m_d2Q[glob_idx]=0.0;
+        }
+    }
+
+    std::cout<<"DONE\n";
+}
 
 //====================== SOLVER ============================
 
@@ -172,7 +204,7 @@ void Solver::local_1D_StiffnessTangentMatrix(std::vector<double> &S_T, int m)
 }
 
 
-void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m, std::function<double(double)> f)
 {
     double Jm=(m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))/2.0;
     int p = m_shapefunction.get_deg()+1;
@@ -186,17 +218,22 @@ void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
             {
                 double ksi = m_local_nodes[k]; 
                 double x_ksi = 0.5*((m_grid.get_NodPosition(m+1)-m_grid.get_NodPosition(m))*ksi + (m_grid.get_NodPosition(m+1)+m_grid.get_NodPosition(m)));
-                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
+                M[l]+=m_local_weights[k]*(m_shapefunction.Rphi_1D(ksi,i)*f(x_ksi)*m_shapefunction.Rphi_1D(ksi,j)*Jm);
             }
 
         }
     }
 }
+
+void Solver::local_1D_MassMatrix(std::vector<double> &M, int m)
+{
+    local_1D_MassMatrix(M, m, retOne);
+}
 // ****************************************************
 
 // ****************** BOUNDARY CONDITIONS *******************
 
-void Solver::boundaryConditions(std::string work_type)
+void Solver::boundaryConditions(std::string work_type, std::vector<double> &S, std::vector<double> &F)
 {
     int p = m_shapefunction.get_deg()+1;
     int N = (p-1)*m_grid.get_elementNumber()+1;
@@ -214,15 +251,15 @@ void Solver::boundaryConditions(std::string work_type)
                 {
                     int L_glob = I_glob + j*N;
                     int L_glob_tr = j+I_glob*N;
-                    m_F1D[j]-=bc.bc_value*m_S1D[L_glob];
-                    m_S1D[L_glob]=0.0;
-                    m_S1D[L_glob_tr]=0.0;
+                    F[j]-=bc.bc_value*S[L_glob];
+                    S[L_glob]=0.0;
+                    S[L_glob_tr]=0.0;
 
                     if(I_glob==j)
-                        m_S1D[L_glob]=1.0;
+                        S[L_glob]=1.0;
                 }
 
-                m_F1D[I_glob]=bc.bc_value;
+                F[I_glob]=bc.bc_value;
             }
 
             else if (bc.bct==2)
@@ -230,17 +267,17 @@ void Solver::boundaryConditions(std::string work_type)
 
                 if (I_glob == 0) 
                 {
-                m_F1D[I_glob] += bc.bc_value; 
+                F[I_glob] += bc.bc_value; 
                 }   
                 else 
                 {
-                    m_F1D[I_glob] -= bc.bc_value; 
+                    F[I_glob] -= bc.bc_value; 
                 }
             }
         }
     }
 
-    if (work_type=="eigen")
+    else if (work_type=="eigen")
     {
         for (const auto &bc : m_grid.get_BC())
         {
@@ -254,16 +291,16 @@ void Solver::boundaryConditions(std::string work_type)
                     int L_glob = I_glob + j*N;
                     int L_glob_tr=j+I_glob*N;
 
-                    m_S1D[L_glob]=0.0;
-                    m_M1D[L_glob]=0.0;
+                    S[L_glob]=0.0;
+                    F[L_glob]=0.0; //F=M
 
-                    m_S1D[L_glob_tr]=0.0;
-                    m_M1D[L_glob_tr]=0.0;
+                    S[L_glob_tr]=0.0;
+                    F[L_glob_tr]=0.0;
 
                     if(I_glob==j)
                     {
-                        m_S1D[L_glob]=1.0;
-                        m_M1D[L_glob]=1.0;
+                        S[L_glob]=1.0;
+                        F[L_glob]=1.0;
                     }
                 }    
 
@@ -277,7 +314,7 @@ void Solver::boundaryConditions(std::string work_type)
         }
     }
 
-    if (work_type=="nonlinear")
+    else if (work_type=="nonlinear") //S=S_T, F=R
     {
         for (const auto &bc : m_grid.get_BC())
         {
@@ -289,16 +326,61 @@ void Solver::boundaryConditions(std::string work_type)
 
                 for (int j = 0; j < N; j++) 
                 {
-                    m_St1D[I_glob + j * N] = 0.0; 
+                    S[I_glob + j * N] = 0.0; 
                 }
 
-                m_St1D[I_glob + I_glob * N] = 1.0; 
-                m_R1D[I_glob] = m_Q[I_glob]-bc.bc_value; 
+                S[I_glob + I_glob * N] = 1.0; 
+                F[I_glob] = m_Q[I_glob]-bc.bc_value; 
             }
         }   
     }
-    std::cout<<"DONE\n";
 
+
+    else if (work_type =="time_dependent")
+    {
+        for (const auto &bc : m_grid.get_BC())
+        {
+            
+            int I_glob = bc.m * (p - 1); 
+            double bc_val = bc.bc_value;
+            if (bc.bct == 1)
+            {
+                
+
+                for (int j = 0; j < N; j++)
+                {
+                    int L_glob = I_glob + j*N;
+                    int L_glob_tr=j+I_glob*N;
+                    if (j != I_glob) 
+                    {
+                        F[j] -= S[j+ N*I_glob] * bc_val;
+                    }
+
+                
+                    S[L_glob] = 0.0;
+                    S[L_glob_tr] = 0.0;
+                
+                }
+                S[I_glob+N*I_glob] = 1.0;
+                F[I_glob] = bc_val;
+            }
+
+            else if (bc.bct == 2)
+            {
+                if (I_glob == 0) 
+                {
+                F[I_glob] += bc.bc_value; 
+                }
+                else 
+                {
+                    F[I_glob] -= bc.bc_value; 
+                }   
+            }
+        }
+
+    }
+
+    std::cout<<"DONE\n";
 }
 
 
@@ -306,7 +388,7 @@ void Solver::boundaryConditions(std::string work_type)
 
 // ****************** ASSEMBLERS *******************
 
-void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix)
+void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix, std::function<double(double)> f)
 {
     int p = m_shapefunction.get_deg()+1;
     std::vector<double> S_loc(p*p, 0.0);
@@ -315,24 +397,43 @@ void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix
     matrix.resize(N*N, 0.0);
 
     std::cout<<"\t"<<work_type<<" assemble process start... ";
-    void (Solver::*local_matrix_func)(std::vector<double>&, int) = nullptr;
+    std::function<void(std::vector<double>&, int)> local_matrix_func = nullptr;
 
     if (work_type == "stiffness_linear") 
     {
-        local_matrix_func = &Solver::local_1D_linear_StifnessMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_linear_StifnessMatrix(S, m); 
+        };
     }
     else if (work_type == "stiffness_nonlinear") 
     {
-        local_matrix_func = &Solver::local_1D_nonlinear_StifnessMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_nonlinear_StifnessMatrix(S, m); 
+        };
     } 
     else if (work_type == "eigen") 
     {
-        local_matrix_func = &Solver::local_1D_MassMatrix;
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_MassMatrix(S, m); 
+        };
     } 
     else if (work_type == "tangent") 
     {
-        local_matrix_func = &Solver::local_1D_StiffnessTangentMatrix;
-    } 
+        local_matrix_func = [this](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_StiffnessTangentMatrix(S, m); 
+        };
+    }
+    else if (work_type =="time_dependent")
+    {
+        local_matrix_func = [this, f](std::vector<double>& S, int m) 
+        { 
+            this->local_1D_MassMatrix(S, m, f); 
+        };
+    }
     else 
     {
         std::cout << "[ Error ]: WRONG WORK_TYPE: " << work_type << "\n";
@@ -343,7 +444,7 @@ void Solver::Matrix_assembler(std::string work_type, std::vector<double> &matrix
     {
         S_loc.assign(S_loc.size(), 0.0);
 
-        (this->*local_matrix_func)(S_loc, m);
+    local_matrix_func(S_loc, m);
 
         for (int j=0; j<p; j++)
         {
@@ -418,7 +519,7 @@ void Solver::stationary_1D_linear()
     m_Q.resize(N);
     Matrix_assembler("stiffness_linear", m_S1D);
     Vector_assembler("load_linear");
-    boundaryConditions("stationary");
+    boundaryConditions("stationary", m_S1D, m_F1D);
 
     Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
 
@@ -445,7 +546,7 @@ void Solver::stationary_1D_nonlinear()
     int iterrMax = 100;
     int iterr = 0;
     double error = 1.0;
-    double omega = 0.2;
+    double omega = 0.4;
     Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
     Eigen::Map<Eigen::MatrixXd> St_e(m_St1D.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
@@ -471,7 +572,7 @@ void Solver::stationary_1D_nonlinear()
         
         
         Matrix_assembler("tangent", m_St1D);
-        boundaryConditions("nonlinear");
+        boundaryConditions("nonlinear", m_St1D, m_R1D);
 
         Eigen::VectorXd dQ_e = St_e.partialPivLu().solve(-R_e);
         Q_e+=omega*dQ_e;
@@ -481,15 +582,129 @@ void Solver::stationary_1D_nonlinear()
     std::cout<<"DONE\n";
 }
 
+// ****************************************************
+
+// **************** SOLVER TIME DEPENDENT 1 DIM ********************
+
+void Solver::timeDependent_1D_linear()
+{
+    // WORK IN PROGRESS
+    std::cout<<std::string(60, '=')<<"\n";
+    std::cout<<"\t\t TIME DEPENDENT SOLVER\n";
+    int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1;
+    int p = m_shapefunction.get_deg()+1;
+
+
+    double beta=0.25;
+    double gamma=0.5;
+    double dt=0.0001;
+
+    m_Q.resize(N, 1.0);
+    m_dQ.resize(N,0.0);
+    m_d2Q.resize(N,0.0);
+    m_S1D.resize(N*N, 0.0);
+    m_F1D.resize(N,0.0);
+
+    std::vector<double> ME(N*N,0.0), MF(N*N,0.0);
+    std::vector<double> S_eff(N*N, 0.0), F_eff(N, 0.0);
+
+    Eigen::Map<Eigen::MatrixXd> ME_e(ME.data(), N, N);
+    Eigen::Map<Eigen::MatrixXd> MF_e(MF.data(), N, N);
+    Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
+    Eigen::Map<Eigen::VectorXd> F_e(m_F1D.data(), N);
+
+    Eigen::Map<Eigen::VectorXd> d_Q_e(m_dQ.data(), N);
+    Eigen::Map<Eigen::VectorXd> d2_Q_e(m_d2Q.data(), N);
+    Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
+    Eigen::Map<Eigen::MatrixXd> S_eff_e(S_eff.data(), N, N);
+    Eigen::Map<Eigen::VectorXd> F_eff_e(F_eff.data(), N);
+
+    S_eff_e = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*dt*MF_e); // FOR TESTS 
+    F_eff_e = (1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e)*Q_e + F_e-(1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e-(1.0/(beta*dt)*ME_e+(-1.0+gamma/beta)*MF_e)*d_Q_e;
+    d2_Q_e = S_eff_e.partialPivLu().solve(F_eff_e);
+
+
+    double t=0.0;
+    double t_max=0.1;
+    int f=5;
+    int time_idx=0;
+    m_physics.connectTime(&t);
+
+    while(t<=t_max)
+    {
+        
+        std::cout<<"\t\tTIME= "<<t<<"\n";
+
+        std::fill(ME.begin(), ME.end(), 0.0);
+        std::fill(MF.begin(), MF.end(), 0.0);
+        std::fill(m_S1D.begin(), m_S1D.end(), 0.0);
+        std::fill(m_F1D.begin(), m_F1D.end(), 0.0);
+
+
+        Matrix_assembler("time_dependent", ME, [this](double x){return m_physics.E(x);});
+        Matrix_assembler("time_dependent", MF, [this](double x){return m_physics.F(x);});
+        Matrix_assembler("stiffness_linear", m_S1D);
+        Vector_assembler("load_linear");
+
+        
+        std::cout<<"\tBuilding effective Stiffness Matrix & Load Vector...";
+        S_eff_e =  1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e;
+        F_eff_e = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*dt*MF_e)*d2_Q_e + 
+                                (1.0/(beta*dt)*ME_e+(-1.0+gamma/beta)*MF_e)*d_Q_e + 
+                            (1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e - F_e;
+
+        std::cout<<"DONE\n";
+        boundaryConditions("time_dependent", S_eff, F_eff);
+        Eigen::VectorXd Q_prev = Q_e;
+        std::cout<<"\tSolving system of equations...\n";
+        Q_e = S_eff_e.partialPivLu().solve(F_eff_e);
+        std::cout<<"DONE\n";
+        
+        if(time_idx%f==0)
+        {
+            saveSolution("outdir", "time_dependent");
+        }
+
+        //Q', Q'' computing from Newmark formulas
+        for (int j=0; j<N; j++)
+        {
+            bool isDirichlet = false;
+            for (const auto &bc : m_grid.get_BC()) 
+            {
+                if (bc.bct == 1 && bc.m * (p - 1) == j) isDirichlet = true;
+            }
+            double d2qTMP = d2_Q_e(j);
+            if (!isDirichlet)
+            {
+                d2_Q_e(j) = 1.0/(beta*dt*dt)*(Q_e(j)-Q_prev(j))-1.0/(beta*dt)*d_Q_e(j) + (1.0-1.0/(2.0*beta))*d2_Q_e(j);
+                d_Q_e(j) = (1.0-gamma/beta)*d_Q_e(j) + (1-gamma/(2.0*beta))*dt*d2qTMP + gamma/(beta*dt)*(Q_e(j)-Q_prev(j));
+            }
+            else
+            {
+                d2_Q_e(j)=0.0;
+                d_Q_e(j)=0.0;
+            }
+        }
+
+        //FOR TESTS
+        
+        t+=dt;
+        time_idx++;
+
+        std::cout<<"\n\n";
+    }
+
+}
+
 void Solver::Eigen_1D()
 {
     std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER START "<<std::string(4, '#')<<"\n\n";
     std::cout<<"\t SOLVER MODE: EIGEN PROBLEM 1D\n";
     int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1; 
 
-    Matrix_assembler("Stiffness", m_S1D);
+    Matrix_assembler("stiffness_linear", m_S1D);
     Matrix_assembler("eigen", m_M1D);
-    boundaryConditions("eigen");
+    boundaryConditions("eigen", m_S1D, m_M1D);
 
     //std::cout<<m_S1D.size()<<" "<<m_M1D.size()<<"\n";
     auto result = m_physics.EigenSolver(m_S1D, m_M1D);
@@ -573,13 +788,13 @@ double Solver::U_1D(double x, int mode)
 
 void Solver::saveSolution(std::string outdir, std::string work_type)
 {
-    if (work_type=="stationary")
+    if (work_type=="stationary" || work_type=="time_dependent")
     {
         std::cout<<"\t\t\tSaving data... ";
         auto [x_start, x_end] = m_grid.get_RodInfo();
         double x=x_start;
 
-        std::ofstream file(outdir+"/u.dat");
+        std::ofstream file(outdir+"/u"+std::to_string(m_physics.getCurrentTime())+".dat");
 
         while (x<=x_end)
         {

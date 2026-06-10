@@ -9,7 +9,7 @@ y_nodes_zero = np.zeros_like(x_nodes)
 
 # Wczytanie rozwiązania (kolumna 0: x, kolumna 1: u(x))
 # Plik u.dat zawiera gęste punkty wygenerowane przez m_dxSave
-sol_data = np.loadtxt("./outdir_stationary/u.dat")
+sol_data = np.loadtxt("./outdir_stationary/u0.000000.dat")
 x_sol = sol_data[:, 0]
 u_sol = sol_data[:, 1]
 
@@ -57,4 +57,4 @@ plt.tight_layout()
 
 # Pokazanie obu okien na raz
 plt.show()
-plt.savefig("./outdir_stationary/u(x).png")
+plt.savefig("./u(x).png")

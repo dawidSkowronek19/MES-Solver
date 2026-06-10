@@ -26,13 +26,21 @@ double Physics::D(double x, double u) {return 0.0;}
 double Physics::B(double x) {return 0.0;}
 double Physics::C(double x) {return 0.0;}
 double Physics::D(double x) {return 0.0;}
+double Physics::E(double x) {return 0.0;}
+double Physics::F(double x) {return 0.0;}
+
 
 double Physics::dB_du(double x, double u) {return 0.0;}
 double Physics::dC_du(double x, double u) {return 0.0;}
 double Physics::dD_du(double x, double u) {return 0.0;}
 
 
+void Physics::connectTime(const double *t) 
+{
+    m_t=t;
+}
 
+double Physics::getCurrentTime(){return (m_t!=nullptr) ? *m_t : 0.0; }
 
 // *****************************************************************
 
@@ -61,17 +69,63 @@ GeneralPDE::GeneralPDE(MathSolver &math) : Physics(math)
     std::cout<<"General form PDE\n";
 }
 
-double GeneralPDE::B(double x, double u) {return 0.0;}
-double GeneralPDE::C(double x, double u) {return 0.0;}
-double GeneralPDE::D(double x, double u) {return 0.0;}
+double GeneralPDE::B(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::C(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::D(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 1.0;
+}
 
-double GeneralPDE::B(double x) {return 0.0;}
-double GeneralPDE::C(double x) {return 0.0;}
-double GeneralPDE::D(double x) {return 0.0;}
+double GeneralPDE::B(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::C(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::D(double x) 
+{
+    double t=getCurrentTime();
+    return 1.0;
+}
+double GeneralPDE::E(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::F(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
 
-double GeneralPDE::dB_du(double x, double u) {return 0.0;}
-double GeneralPDE::dC_du(double x, double u) {return 0.0;}
-double GeneralPDE::dD_du(double x, double u) {return 0.0;}
+double GeneralPDE::dB_du(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::dC_du(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralPDE::dD_du(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
 
 
 Eigen::VectorXd GeneralPDE::solver(std::vector<double> &S, std::vector<double> &F)
@@ -91,14 +145,48 @@ GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math) : Physics(math)
     std::cout<<"General symetric form PDE\n";
 }
 
-double GeneralSymetricPDE::C(double x, double u) {return 0.0;}
-double GeneralSymetricPDE::D(double x, double u) {return 2*u*u*u;}
+double GeneralSymetricPDE::C(double x, double u) 
+{
+    double t=getCurrentTime();
+    return u*x*(1-x);
+}
+double GeneralSymetricPDE::D(double x, double u) 
+{
+    double t=getCurrentTime();
+    return u*u/sin(x*x+1e-6);
+}
 
-double GeneralSymetricPDE::dC_du(double x, double u) {return 0.0;}
-double GeneralSymetricPDE::dD_du(double x, double u) {return 6*u*u;}
+double GeneralSymetricPDE::dC_du(double x, double u) 
+{
+    double t=getCurrentTime();
+    return x*(x-1);
+}
+double GeneralSymetricPDE::dD_du(double x, double u) 
+{
+    double t=getCurrentTime();
+    return 2*u/sin(x*x+1e-6);
+}
 
-double GeneralSymetricPDE::C(double x) {return 0.0;}
-double GeneralSymetricPDE::D(double x) {return 0.0;}
+double GeneralSymetricPDE::C(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralSymetricPDE::D(double x) 
+{
+    double t=getCurrentTime();
+    return x*x;
+}
+double GeneralSymetricPDE::E(double x) 
+{
+    double t=getCurrentTime();
+    return 0.0;
+}
+double GeneralSymetricPDE::F(double x) 
+{
+    double t=getCurrentTime();
+    return 1.0;
+}
 
 
 
