@@ -253,7 +253,7 @@ void Solver::boundaryConditions(std::string work_type, std::vector<double> &S, s
                     int L_glob_tr = j+I_glob*N;
                     F[j]-=bc.bc_value*S[L_glob];
                     S[L_glob]=0.0;
-                    F[L_glob_tr]=0.0;
+                    S[L_glob_tr]=0.0;
 
                     if(I_glob==j)
                         S[L_glob]=1.0;
@@ -546,7 +546,7 @@ void Solver::stationary_1D_nonlinear()
     int iterrMax = 100;
     int iterr = 0;
     double error = 1.0;
-    double omega = 0.2;
+    double omega = 0.4;
     Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
     Eigen::Map<Eigen::MatrixXd> St_e(m_St1D.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
@@ -597,7 +597,7 @@ void Solver::timeDependent_1D_linear()
 
     double beta=0.25;
     double gamma=0.5;
-    double dt=0.01;
+    double dt=0.0001;
 
     m_Q.resize(N, 1.0);
     m_dQ.resize(N,0.0);
@@ -625,7 +625,7 @@ void Solver::timeDependent_1D_linear()
 
 
     double t=0.0;
-    double t_max=4.0;
+    double t_max=0.1;
     int f=5;
     int time_idx=0;
     m_physics.connectTime(&t);
@@ -702,7 +702,7 @@ void Solver::Eigen_1D()
     std::cout<<"\t SOLVER MODE: EIGEN PROBLEM 1D\n";
     int N = m_shapefunction.get_deg()*m_grid.get_elementNumber()+1; 
 
-    Matrix_assembler("Stiffness", m_S1D);
+    Matrix_assembler("stiffness_linear", m_S1D);
     Matrix_assembler("eigen", m_M1D);
     boundaryConditions("eigen", m_S1D, m_M1D);
 

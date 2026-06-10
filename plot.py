@@ -57,4 +57,4 @@ plt.tight_layout()
 
 # Pokazanie obu okien na raz
 plt.show()
-plt.savefig("./outdir_stationary/u(x).png")
+plt.savefig("./u(x).png")

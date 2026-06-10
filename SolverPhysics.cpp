@@ -148,23 +148,23 @@ GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math) : Physics(math)
 double GeneralSymetricPDE::C(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return u*x*(1-x);
 }
 double GeneralSymetricPDE::D(double x, double u) 
 {
     double t=getCurrentTime();
-    return 2*u*u*u;
+    return u*u/sin(x*x+1e-6);
 }
 
 double GeneralSymetricPDE::dC_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return x*(x-1);
 }
 double GeneralSymetricPDE::dD_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 6*u*u;
+    return 2*u/sin(x*x+1e-6);
 }
 
 double GeneralSymetricPDE::C(double x) 
@@ -175,17 +175,17 @@ double GeneralSymetricPDE::C(double x)
 double GeneralSymetricPDE::D(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return x*x;
 }
 double GeneralSymetricPDE::E(double x) 
 {
     double t=getCurrentTime();
-    return t*t;
+    return 0.0;
 }
 double GeneralSymetricPDE::F(double x) 
 {
     double t=getCurrentTime();
-    return x*x;
+    return 1.0;
 }
 
 
