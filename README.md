@@ -1,49 +1,47 @@
-# C++ Finite Element Method (FEM) Solver
+# C++ 1D Finite Element Method (FEM) Solver
 
-This repository hosts a Finite Element Method (FEM) solver written in C++. The ultimate goal of this project is to build a robust, highly optimized, and user-friendly tool for solving stationary PDE/time dependent PDE/ eigen problems in three dimensional spacetime with GUI and CAD reader for geometry
-
+This repository hosts a highly modular and robust 1D Finite Element Method (FEM) solver written in C++. The ultimate goal of this project is to build a highly optimized, user-friendly tool for solving stationary, non-linear, time-dependent partial differential equations (PDEs), and eigenvalue problems.
 
 ## Current Status
-The current stable baseline version is in branch main
-## Current Development Goals
+The current stable baseline version is in branch `main`.
 
-##Compile Instruction: cmake --build ./build/ -j"X" where X = core number used for compiling
+## Compile Instructions
+To compile the project using CMake, run the following command in the root directory:
+```bash
+cmake --build ./build/ -j"X" 
+```
+*(Where `X` = the number of CPU cores used for compiling)*
 
+> **Note:** This project utilizes the **Eigen3** library for algebraic operations and the **GNU Scientific Library (GSL)** for numerical integration. Ensure both are installed on your system before building.
 
-Active development is taking place to improve the architecture and capabilities of the solver. The current focus includes:
-* **Object-Oriented Refactoring:** Restructuring the codebase to be more strictly object-oriented and modular.
-* **Optimized Solvers:** Implementing specialized and highly optimized solvers tailored for various classical equations.
-* **Boundary Conditions:** Expanding support to handle all remaining types of boundary conditions.
+---
 
-## Future Roadmap
-Looking ahead, the project aims to implement:
-* **Time Dependent Solver:** Create solver which is able to solve 1D time dependent differential equations. 
-* **Graphical User Interface (GUI):** To make the solver more accessible and easier to use.
-* **Multidimensional Support:** Extending the physics and mathematical models to solve 2D and 3D problems.
-=======
-**1D FEM Solver - Version 0.1 Update**  
-This repository contains a 1D Finite Element Method (FEM) solver. The current update (v0.1) introduces a major architectural overhaul, improving code modularity, usability, and the range of supported physical problems.  
-**What's New**  
-**1. Object-Oriented Architecture Refactoring**  
-The entire codebase has been rewritten to follow strict Object-Oriented Programming (OOP) principles. The code is now much cleaner, highly modular, and easier to maintain or extend in the future.  
-**2. CMake Integration**  
-Added a CMakeLists.txt file to streamline the build process. The project is now fully compatible with CMake, ensuring an easy, cross-platform compilation process.  
-**3. Architecture Separation: **MathSolver ** and **Physics  
-To enforce a clear separation of concerns, the core logic has been split into dedicated classes:  
-- **MathSolver** ** Class:** A new module exclusively responsible for handling low-level algebraic operations, matrix transformations, and solving linear systems.  
-- **Physics** ** Class:** A dedicated class that defines the physical equations governing the problem. This fully decouples the mathematical engine from the physical context.  
-**4. User-Friendly API**  
-- **Encapsulated Assemblers:** The Matrix_assembler and Vector_assembler methods have been moved to the private scope of the Solver class. This hides the internal mechanics from the end-user, creating a much simpler, robust, and clean public API.  
-- **Boundary Conditions Setup:** The definition and assignment of Boundary Conditions have been moved directly to main.cpp. This allows users to set up their simulation parameters quickly without modifying the core library files.  
-**5. Advanced Solver Features**  
-- **Neumann Boundary Conditions:** The solver now fully supports Neumann (flux/derivative) boundary conditions alongside standard Dirichlet conditions.  
-- **Nonlinear Stationary Solver (WIP):** Added support for nonlinear stationary problems. The current implementation utilizes the Newton-Raphson iteration methodto resolve nonlinearities. *Note: This feature is actively being developed (Work in Progress).*  
-**6. Quality of Life Improvements**  
-- **Automated File Management:** The application now automatically creates the necessary directory tree for storing output results and temporary simulation files. No manual folder  
+## What's New in Version 0.2
 
+**1. Full Solver Capabilities Expanded**
+The solver engine has been vastly expanded to handle a wide variety of physical equations:
+* **Time-Dependent Solver:** A new solver utilizing the Newmark-beta method for integrating 1D time-dependent differential equations.
+* **Eigenvalue Solver:** Implemented capabilities to solve both General and Symmetric Eigenvalue problems using Eigen's `GeneralizedSelfAdjointEigenSolver` and `GeneralizedEigenSolver`. (eigen.py requires to set which mode you want to plot)
+* **Nonlinear Stationary Solver:** The Newton-Raphson iteration method is now fully implemented and operational, successfully resolving non-linearities with automated Tangent Matrix assembly.
 
+**2. Higher-Order Shape Functions**
+The implementation now supports arbitrary polynomial degrees for shape functions. The generic `ShapeFunction` class allows users to easily define the degree of the polynomials, enabling advanced p-FEM capabilities.
 
-# IN ORDER TO COMPILE: 
-cmake --build ./build/ -j"X" where X= nb of cores used for compiling
+**3. Advanced Grid Generation**
+The `Grid_1D` class has been heavily upgraded. It now supports non-uniform grid generation with specific attraction constants (`growFactor`, `A`) and utilizes Gaussian quadrature (via GSL) to compute precise node distributions based on boundary condition locations.
 
+**4. Refined Architecture: MathSolver & Physics**
+The strict Object-Oriented separation continues to be improved:
+* **`MathSolver`:** Extended to handle LU decompositions (`PartialPivLU`) for general systems and Bunch-Kaufman (`LDLT`) for symmetric systems.
+* **`Physics`:** An abstract class with specific implementations (`Poisson`, `GeneralPDE`, `GeneralSymetricPDE`) that fully encapsulate the mathematical models and their derivatives (Jacobians) for non-linear solving.
 
+---
+
+## Current Development Goals & Future Roadmap
+
+Active development is focused on making the solver significantly faster and more accessible. The immediate roadmap includes:
+
+* **User-Friendly API & Architecture:** Continuously refining the public API of the solver classes so that setting up physics, meshes, simulation parameters, and boundary conditions is as intuitive and clean as possible.
+* **Input File Parser:** Developing a robust parser to read simulation parameters, boundary conditions, and physical constants directly from input files. This will eliminate the need to recompile the C++ source code for every new simulation setup.
+* **OpenMP Parallelization:** Implementing multi-threading using OpenMP (`omp`). The focus will be on parallelizing the computationally heavy matrix and load vector assembly processes, as well as local integration loops, to drastically reduce computation times for large node counts.
+* **General Code Optimization:** Profiling the codebase to reduce memory overhead and optimize memory access patterns during matrix population. Implementing sparse matrixes
