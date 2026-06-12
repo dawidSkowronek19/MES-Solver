@@ -8,12 +8,9 @@
 #include <fstream>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_splinalg.h>
+#include "Parser.h"
 
-struct BoundaryCondition{
-    int m;
-    int bct; // bounadry condition type 1-Dirichlet, 2-Neumann, 3-Robin
-    double bc_value;
-};
+
 
 
 class Grid_1D{
