@@ -8,6 +8,7 @@
     #include <fstream>
     #include <algorithm>
     #include <cctype>
+    #include <sstream>
 
     struct BoundaryCondition{
     int m;
@@ -37,12 +38,15 @@
     class Parser{
         public:
             Parser::Parser(std::string filename);
+            ConfigParameters getParameters();
         private:
             std::map<std::string, std::string> m_rawGridParameters;
             std::map<std::string, std::string> m_rawSolverParameters;
             std::map<std::string, std::string> m_rawBoundaryConditions;
 
             std::string m_filename;
+            ConfigParameters param;
+            std::vector<BoundaryCondition> m_BoundaryCondition;
 
             void readRawData();
             void convertToParameters();

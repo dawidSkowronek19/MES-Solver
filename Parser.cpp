@@ -23,16 +23,16 @@ void Parser::readRawData()
 
         if (cleanLine.front() == '[' && cleanLine.back() == ']') 
         {
-            currentSection = cleanLine.substr(1, cleanLine.size() - 2);
+            currentSection = trimBlank(cleanLine.substr(1, cleanLine.size() - 2));
             std::transform(currentSection.begin(), currentSection.end(), currentSection.begin(), ::toupper);
         }
 
-        size_t eq_pos = line.find('=');
-        if (eq_pos=std::string::npos) continue;
+        size_t eq_pos = cleanLine.find('=');
+        if (eq_pos == std::string::npos) continue;
 
-        std::string key = line.substr(0, eq_pos);
+        std::string key = trimBlank(cleanLine.substr(0, eq_pos));
         std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-        std::string value = line.substr(eq_pos+1);
+        std::string value = trimBlank(cleanLine.substr(eq_pos+1));
         std::transform(value.begin(), value.end(), value.begin(), ::toupper);
         if (currentSection=="SOLVER") m_rawSolverParameters[key]=value;
         else if (currentSection=="GRID") m_rawGridParameters[key]=value;
@@ -42,18 +42,64 @@ void Parser::readRawData()
 
 void Parser::convertToParameters()
 {
-    ConfigParameters param;
+    
 
     try{
         param.x_start = std::stod(m_rawGridParameters.at("X_START"));
         param.x_end = std::stod(m_rawGridParameters.at("X_END"));
         param.growFactor = std::stod(m_rawGridParameters.at("GROW_FACTOR"));
-        param.integrationOrderGrid = std::stod(m_rawGridParameters.at("INTEGRATION_ORDER"));
-        param.numbOfElements = std::stod(m_rawGridParameters.at("NUMB_OF_ELEMENTS"));
+        param.integrationOrderGrid = std::stoi(m_rawGridParameters.at("INTEGRATION_ORDER"));
+        param.numbOfElements = std::stoi(m_rawGridParameters.at("NUMB_OF_ELEMENTS"));
 
     }
     catch (const std::exception &e)
     {
-        std::cout<<"[ ERROR ]"<<e.what()<<"\n";
+        std::cout<<"[ ERROR IN GRID SECTION ] "<<e.what()<<"\n";
+    }
+
+    try{
+        param.work_type = m_rawSolverParameters.at("WORK_TYPE");
+        param.beta = std::stod(m_rawSolverParameters.at("BETA"));
+        param.gamma = std::stod(m_rawSolverParameters.at("GAMMA"));
+        param.epsilon = std::stod(m_rawSolverParameters.at("EPSILON"));
+        param.omega = std::stod(m_rawSolverParameters.at("OMEGA"));
+        param.t_max = std::stod(m_rawSolverParameters.at("T_MAX"));
+    }
+    catch (const std::exception &e)
+    {
+        std::cout<<"[ ERROR IN SOLVER SECTION ] "<<e.what()<<"\n";
+    }
+
+    try{
+        for (const auto& [key, value] : m_rawBoundaryConditions)
+        {
+            if(key.substr(0,2)=="BC")
+            {
+                std::stringstream ss(value);
+                std::string segment;
+                std::vector<std::string> parts;
+
+                while(std::getline(ss, segment, '/')) 
+                {
+                    parts.push_back(trimBlank(segment));
+                }
+
+                if (parts.size()!=3) continue;
+                int boundaryConditionType;
+                
+                if(parts[0]=="DIRICHLET") boundaryConditionType=1;
+                else if (parts[0]=="NEUMAN") boundaryConditionType=2;
+
+                param.boundaryConditions.push_back({std::stoi(parts[1]), boundaryConditionType, std::stod(parts[2])});
+
+
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cout<<"[ ERROR IN BOUNDARY CONDITIONS SECTION ] "<<e.what()<<"\n";
     }
 }
+
+ConfigParameters Parser::getParameters() {return param;}
