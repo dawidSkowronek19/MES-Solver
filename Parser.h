@@ -9,6 +9,9 @@
     #include <algorithm>
     #include <cctype>
     #include <sstream>
+    #include <functional>
+    #include <memory>
+    #include "exprtk.hpp"
 
     struct BoundaryCondition{
     int m;
@@ -21,6 +24,7 @@
         double x_start;
         double x_end;
         double growFactor;
+        double A;
         int integrationOrderGrid;
         int numbOfElements;
         //BOUNDARY CONDITION
@@ -32,17 +36,20 @@
         double epsilon;
         double omega;
         double t_max;
+        //Equations
+        std::vector<std::function<double(double, double)>> Functions;
 
     };
 
     class Parser{
         public:
-            Parser::Parser(std::string filename);
+            Parser(std::string filename);
             ConfigParameters getParameters();
         private:
             std::map<std::string, std::string> m_rawGridParameters;
             std::map<std::string, std::string> m_rawSolverParameters;
             std::map<std::string, std::string> m_rawBoundaryConditions;
+            std::map<std::string, std::string> m_rawFunctions;
 
             std::string m_filename;
             ConfigParameters param;

@@ -1,6 +1,19 @@
 #include "Parser.h"
 
-Parser::Parser(std::string filename):m_filename(filename) {std::cout<<"\t\tREADINE FILE "<<m_filename<<"\n";}
+Parser::Parser(std::string filename):m_filename(filename) 
+{
+    std::cout<<"\t\tREADINE FILE "<<m_filename<<"\n";
+
+    auto cst_ZERO = [](double u, double v){
+        return 0.0;
+    };
+
+    for (size_t idx=0; idx<5; idx++)
+    {
+        param.Functions.push_back(cst_ZERO);
+    }
+
+}
 
 
 std::string Parser::trimBlank(const std::string &str)
@@ -37,6 +50,7 @@ void Parser::readRawData()
         if (currentSection=="SOLVER") m_rawSolverParameters[key]=value;
         else if (currentSection=="GRID") m_rawGridParameters[key]=value;
         else if(currentSection=="BOUNDARYCONDITIONS") m_rawBoundaryConditions[key]=value;
+        else if (currentSection=="FUNCTIONS") m_rawFunctions[key]=value;
     }
 }
 
@@ -48,6 +62,7 @@ void Parser::convertToParameters()
         param.x_start = std::stod(m_rawGridParameters.at("X_START"));
         param.x_end = std::stod(m_rawGridParameters.at("X_END"));
         param.growFactor = std::stod(m_rawGridParameters.at("GROW_FACTOR"));
+        param.A = std::stod(m_rawGridParameters.at("A"));
         param.integrationOrderGrid = std::stoi(m_rawGridParameters.at("INTEGRATION_ORDER"));
         param.numbOfElements = std::stoi(m_rawGridParameters.at("NUMB_OF_ELEMENTS"));
 
@@ -91,14 +106,64 @@ void Parser::convertToParameters()
                 else if (parts[0]=="NEUMAN") boundaryConditionType=2;
 
                 param.boundaryConditions.push_back({std::stoi(parts[1]), boundaryConditionType, std::stod(parts[2])});
-
-
             }
         }
     }
     catch (const std::exception &e)
     {
         std::cout<<"[ ERROR IN BOUNDARY CONDITIONS SECTION ] "<<e.what()<<"\n";
+    }
+
+    try{
+
+        struct EquationContext{
+            double x=0.0;
+            double u=0.0;
+            exprtk::symbol_table<double> symbol_table;
+            exprtk::expression<double> expression;
+
+        };
+        for (const auto& [key,value] : m_rawFunctions)
+        {
+            auto ctx = std::make_shared<EquationContext>();
+
+            ctx->symbol_table.add_variable("X", ctx->x);
+            ctx->symbol_table.add_variable("U", ctx->u);
+            ctx->symbol_table.add_constants();
+
+            ctx->expression.register_symbol_table(ctx->symbol_table);
+            exprtk::parser<double> expr_parser;
+
+            if (!expr_parser.compile(value,ctx->expression)) throw std::runtime_error("Compilation error "+value);
+
+            auto func = [ctx](double x_val, double u_val) -> double
+            {
+                ctx->x=x_val;
+                ctx->u=u_val;
+
+                return ctx->expression.value();
+            };
+
+            if (key=="B")
+                param.Functions[0]=func;
+            else if (key=="C")
+                param.Functions[1]=func;
+            else if (key=="D")
+                param.Functions[2]=func;
+            else if (key=="E")
+                param.Functions[3]=func;
+            else if (key=="F")
+                param.Functions[4]=func;
+            else
+                throw std::runtime_error("UNKNOWN FUNCTION SYMBOL: "+key);
+
+
+        }
+
+    }
+    catch (const std::exception &e)
+    {
+        std::cout<<"[ ERROR IN FUNCTIONS SECTION ]"<<e.what()<<"\n";
     }
 }
 
