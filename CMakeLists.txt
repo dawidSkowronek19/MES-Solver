@@ -18,6 +18,7 @@ add_executable(solver_exe
     MathSolver.cpp
     Grid.cpp
     ShapeFunction.cpp
+    Parser.cpp
 )
 
 

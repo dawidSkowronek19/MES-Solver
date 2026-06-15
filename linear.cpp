@@ -13,10 +13,70 @@ int main()
     std::cout<<"\t\t ONE DIMENTION FEM SOLVER\n\n";
     std::cout<<std::string(60, '*')<<"\n";
 
-    std::string file_dir;
-    std::string compute_mode;
+    Parser parser("input.inp");
+    ConfigParameters config = parser.getParameters();
 
-    Grid_1D mesh(0.0, 1.0, 0.5, 10.0, 12, 20);
+    std::cout<<config.shapeFunctionDeg;
+
+    Grid_1D mesh(config);
+    mesh.set_boundaryConditions();
+    mesh.buildGrid();
+    MathSolver math;
+    ShapeFunction sh_func(config);
+    GeneralSymetricPDE PDE(math, config);
+
+    std::string file_dir;
+    if (config.work_type == "STATIONARY_LINEAR")
+    {
+        file_dir = "./outdir_stationary";
+        std::filesystem::create_directories(file_dir);
+
+        mesh.saveGrid(file_dir);
+        Solver StationaryLinearSolution(mesh, sh_func, PDE, config);
+        StationaryLinearSolution.stationary_1D_linear();
+        StationaryLinearSolution.saveSolution(file_dir, "stationary");
+        int output_py_sl=std::system("python3 ./plot.py");
+    }
+
+    else if (config.work_type=="STATIONARY_NONLINEAR")
+    {
+        file_dir = "./outdir_stationary";
+        std::filesystem::create_directories(file_dir);
+        
+
+        mesh.saveGrid(file_dir);
+        Solver StationaryNonlinearSolution(mesh, sh_func, PDE, config);
+        StationaryNonlinearSolution.stationary_1D_nonlinear();
+        StationaryNonlinearSolution.saveSolution(file_dir, "stationary");
+        int output_py_sl=std::system("python3 ./plot.py");
+    }
+
+    else if (config.work_type=="TIME_DEPENDENT")
+    {
+        file_dir = "outdir_timeDependent";
+        std::filesystem::create_directories(file_dir);
+
+        mesh.saveGrid(file_dir);
+        Solver TimeDependentSolution(mesh, sh_func, PDE, config);
+        TimeDependentSolution.timeDependent_1D_linear();
+        int output_py_td=std::system("python3 ./gif.py");
+    }
+
+    else if (config.work_type=="EIGEN")
+    {
+        file_dir = "./outdir_eigen";
+        std::filesystem::create_directories(file_dir);
+
+        mesh.saveGrid(file_dir);
+        Solver EigenSolution(mesh, sh_func, PDE, config);
+        EigenSolution.Eigen_1D();
+        EigenSolution.saveSolution(file_dir, "eigen");
+        int output_py_eig=std::system("python3 ./eigen.py");
+    }
+
+
+
+    /*Grid_1D mesh();
     std::vector<BoundaryCondition> bc;
     bc.push_back({0, 1, 0.0});
     //bc.push_back({200, 1, 0.0});
@@ -83,7 +143,6 @@ int main()
 
 
     */
-   
    
    
 

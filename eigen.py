@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ==================== WCZYTANIE DANYCH ====================
-mode=798
+mode=196
 
 # Wczytanie rozwiązania (kolumna 0: x, kolumna 1: u(x))
 # Plik u.dat zawiera gęste punkty wygenerowane przez m_dxSave

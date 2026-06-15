@@ -36,8 +36,16 @@
         double epsilon;
         double omega;
         double t_max;
+        double dt;
+        double du;
+        double dxSave;
+        //SHAPE FUNCTIONS
+        int shapeFunctionDeg;
         //Equations
         std::vector<std::function<double(double, double, double)>> Functions;
+        //Initial Values
+        std::function<double(double)> u;
+        std::function<double(double)> v;
 
     };
 
@@ -50,6 +58,7 @@
             std::map<std::string, std::string> m_rawSolverParameters;
             std::map<std::string, std::string> m_rawBoundaryConditions;
             std::map<std::string, std::string> m_rawFunctions;
+            std::map<std::string, std::string> m_rawInitialValues;
 
             std::string m_filename;
             ConfigParameters param;

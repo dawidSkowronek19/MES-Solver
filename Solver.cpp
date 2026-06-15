@@ -4,11 +4,10 @@
 
 //===================== CONSTRUCTOR & DESTRUCTOR =================
 
-Solver::Solver(Grid_1D &grid, ShapeFunction &shapefunction, Physics &physics) : m_grid(grid), m_shapefunction(shapefunction), m_physics(physics)
+Solver::Solver(Grid_1D &grid, ShapeFunction &shapefunction, Physics &physics, ConfigParameters &config) : m_grid(grid), m_shapefunction(shapefunction), m_physics(physics), m_config(config)
 {
     std::cout<<std::string(60, '=')<<"\n";
     std::cout<<"\n\n\n \t\t\tSOLVER SECTION\n\n\n";
-    m_dxSave=0.01;
     m_integrationOrder=ceil((m_shapefunction.get_deg()*m_shapefunction.get_deg()+1)/2.0);
     
 
@@ -20,7 +19,7 @@ Solver::Solver(Grid_1D &grid, ShapeFunction &shapefunction, Physics &physics) : 
 
     std::cout<<"\t\t"<<std::string(4, '#')<<" SOLVER PARAMETERS "<<std::string(4, '#')<<"\n\n";
     std::cout<<"\tdim[phi(x)] = "<<m_shapefunction.get_deg()<<"\n";
-    std::cout<<"\tsaving step size = "<<m_dxSave<<"\n";
+    std::cout<<"\tsaving step size = "<<m_config.dxSave<<"\n";
     std::cout<<"\tIntegration Order = "<<m_integrationOrder<<"\n\n";
     std::cout<<"\t\t"<<"# SOLVER PARAMETERS END #\n\n";
 
@@ -38,7 +37,7 @@ double Solver::retOne(double x) {return 1.0;}
 
 //====================== Initial Values ====================
 
-void Solver::initialValues(std::function<double(double)> u, std::function<double(double)> v)
+void Solver::initialValues()
 {
     std::cout<<"\t Computing initial values... ";
     int p = m_shapefunction.get_deg()+1;
@@ -59,9 +58,8 @@ void Solver::initialValues(std::function<double(double)> u, std::function<double
             int glob_idx = m*(p-1) + i;
             double x = x_left+(double(i)/double(p-1))*(x_right-x_left);
 
-            m_Q[glob_idx] = u(x);
-            m_dQ[glob_idx]=v(x);
-            m_d2Q[glob_idx]=0.0;
+            m_Q[glob_idx] = m_config.u(x);
+            m_dQ[glob_idx]=m_config.v(x);
         }
     }
 
@@ -542,11 +540,11 @@ void Solver::stationary_1D_nonlinear()
     m_R1D.resize(N,1.0);
 
 
-    double epsilon = 1e-4;
+    double epsilon = m_config.epsilon;
     int iterrMax = 100;
     int iterr = 0;
     double error = 1.0;
-    double omega = 0.4;
+    double omega = m_config.omega;
     Eigen::Map<Eigen::VectorXd> Q_e(m_Q.data(), N);
     Eigen::Map<Eigen::MatrixXd> St_e(m_St1D.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> S_e(m_S1D.data(), N, N);
@@ -595,9 +593,9 @@ void Solver::timeDependent_1D_linear()
     int p = m_shapefunction.get_deg()+1;
 
 
-    double beta=0.25;
-    double gamma=0.5;
-    double dt=0.0001;
+    double beta=m_config.beta;
+    double gamma=m_config.gamma;
+    double dt=m_config.dt;
 
     m_Q.resize(N, 1.0);
     m_dQ.resize(N,0.0);
@@ -619,13 +617,15 @@ void Solver::timeDependent_1D_linear()
     Eigen::Map<Eigen::MatrixXd> S_eff_e(S_eff.data(), N, N);
     Eigen::Map<Eigen::VectorXd> F_eff_e(F_eff.data(), N);
 
+    initialValues();
+
     S_eff_e = ((-1.0 + 1.0/(2.0*beta))*ME_e + (gamma/(2.0*beta)-1.0)*dt*MF_e); // FOR TESTS 
     F_eff_e = (1.0/(beta*dt*dt)*ME_e + (gamma/(beta*dt))*MF_e - S_e)*Q_e + F_e-(1.0/(beta*dt*dt)*ME_e + gamma/(beta*dt)*MF_e)*Q_e-(1.0/(beta*dt)*ME_e+(-1.0+gamma/beta)*MF_e)*d_Q_e;
     d2_Q_e = S_eff_e.partialPivLu().solve(F_eff_e);
 
 
     double t=0.0;
-    double t_max=0.1;
+    double t_max=m_config.t_max;
     int f=5;
     int time_idx=0;
     m_physics.connectTime(&t);
@@ -656,13 +656,13 @@ void Solver::timeDependent_1D_linear()
         std::cout<<"DONE\n";
         boundaryConditions("time_dependent", S_eff, F_eff);
         Eigen::VectorXd Q_prev = Q_e;
-        std::cout<<"\tSolving system of equations...\n";
+        std::cout<<"\tSolving system of equations...";
         Q_e = S_eff_e.partialPivLu().solve(F_eff_e);
         std::cout<<"DONE\n";
         
         if(time_idx%f==0)
         {
-            saveSolution("outdir", "time_dependent");
+            saveSolution("outdir_timeDependent", "time_dependent");
         }
 
         //Q', Q'' computing from Newmark formulas
@@ -799,7 +799,7 @@ void Solver::saveSolution(std::string outdir, std::string work_type)
         while (x<=x_end)
         {
             file<<x<<" "<<U_1D(x)<<"\n";
-            x+=m_dxSave;
+            x+=m_config.dxSave;
         }
     
         file<<x_end<<" "<<U_1D(x_end)<<"\n";
@@ -823,7 +823,7 @@ void Solver::saveSolution(std::string outdir, std::string work_type)
             while(x<x_end)
             {
                 file_eigenvector<<x<<" "<<U_1D(x, mode)<<"\n";
-                x+=m_dxSave;
+                x+=m_config.dxSave;
             }
             
             file_eigenvector<<x_end<<" "<<U_1D(x_end, mode)<<"\n";

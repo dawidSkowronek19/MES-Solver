@@ -16,8 +16,8 @@
 class Grid_1D{
 
     public:
-        Grid_1D(double x_start, double x_end, double growFactor, double A, int int_order, int numbOfElements);
-        void set_boundaryConditions(std::vector<BoundaryCondition>);
+        Grid_1D(ConfigParameters &config);
+        void set_boundaryConditions();
         void buildGrid();
         void saveGrid(std::string outdir);
 
@@ -30,11 +30,7 @@ class Grid_1D{
     private:
         std::vector<double> m_nodes;
         std::vector<BoundaryCondition> m_bc;
-        double m_x_start, m_x_end;
-        double m_growFactor;
-        int m_numbOfElements;
-        int m_N_int;
-        double m_A;
+        ConfigParameters m_config;
 
 };
 

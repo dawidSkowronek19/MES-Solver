@@ -1,17 +1,29 @@
 [ GRID ]
-	x_start = -1.0
+	x_start = 0.0
 	x_end = 1.0
-	Grow_Factor = 10.0
-	Integration_Order = 6
+	Grow_Factor = 0.5
+	A=10.0
+	Integration_Order = 12
 	Numb_Of_elements = 100
+
 [ SOLVER ]
 	work_type=time_dependent
 	beta =0.25
 	gamma= 0.5
-	epsilon=1e-4
-	omega=0.4
+	epsilon=1e-8
+	omega=0.2
 	t_max = 1.0
-[ BOUNDARYCONDITIONS ]
-	BC1 = Dirichlet/0/0.0
-	BC2= Neuman/100/1.0
+	dt=0.001
+	du=0.001
+	dx_save=0.01
+	sh_func_deg=2
 
+[ BOUNDARYCONDITIONS ]
+	BC1 = Neuman/0/0.0
+	BC2= Neuman/100/0.0
+
+[ FUNCTIONS ]
+	F=1.0
+[ INITIALVALUES ]
+	u = if(x >= 0.5, 1, 0)
+	v=0.0

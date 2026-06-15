@@ -13,6 +13,9 @@ Parser::Parser(std::string filename):m_filename(filename)
         param.Functions.push_back(cst_ZERO);
     }
 
+    readRawData();
+    convertToParameters();
+
 }
 
 
@@ -51,6 +54,7 @@ void Parser::readRawData()
         else if (currentSection=="GRID") m_rawGridParameters[key]=value;
         else if(currentSection=="BOUNDARYCONDITIONS") m_rawBoundaryConditions[key]=value;
         else if (currentSection=="FUNCTIONS") m_rawFunctions[key]=value;
+        else if (currentSection=="INITIALVALUES") m_rawInitialValues[key]=value;
     }
 }
 
@@ -79,7 +83,12 @@ void Parser::convertToParameters()
         param.epsilon = std::stod(m_rawSolverParameters.at("EPSILON"));
         param.omega = std::stod(m_rawSolverParameters.at("OMEGA"));
         param.t_max = std::stod(m_rawSolverParameters.at("T_MAX"));
+        param.dt = std::stod(m_rawSolverParameters.at("DT"));
+        param.du=std::stod(m_rawSolverParameters.at("DU"));
+        param.dxSave=std::stod(m_rawSolverParameters.at("DX_SAVE"));
+        param.shapeFunctionDeg=std::stoi(m_rawSolverParameters.at("SH_FUNC_DEG"));
     }
+
     catch (const std::exception &e)
     {
         std::cout<<"[ ERROR IN SOLVER SECTION ] "<<e.what()<<"\n";
@@ -167,6 +176,42 @@ void Parser::convertToParameters()
     catch (const std::exception &e)
     {
         std::cout<<"[ ERROR IN FUNCTIONS SECTION ]"<<e.what()<<"\n";
+    }
+
+    try{
+        struct InitValContext{
+            double x=0.0;
+            exprtk::symbol_table<double> symbol_table;
+            exprtk::expression<double> expression;
+        };
+
+        for (const auto& [key, value]: m_rawInitialValues)
+        {
+            auto ctx=std::make_shared<InitValContext>();
+            ctx->symbol_table.add_variable("X", ctx->x);
+            ctx->symbol_table.add_constants();
+
+            ctx->expression.register_symbol_table(ctx->symbol_table);
+            exprtk::parser<double> expr_parser;
+            if (!expr_parser.compile(value,ctx->expression)) throw std::runtime_error("Compilation error "+value);
+
+
+            auto func = [ctx](double x_val) -> double
+            {
+                ctx->x=x_val;
+                return ctx->expression.value();
+            };
+
+            if (key=="U") param.u = func;
+            else if (key=="V") param.v=func;
+
+        }
+
+
+    }
+    catch (const std::exception &e)
+    {
+        std::cout<<"[ ERROR IN INITIAL VALUES SECTION ] "<<e.what()<<"\n";
     }
 }
 
