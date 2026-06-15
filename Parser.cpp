@@ -4,7 +4,7 @@ Parser::Parser(std::string filename):m_filename(filename)
 {
     std::cout<<"\t\tREADINE FILE "<<m_filename<<"\n";
 
-    auto cst_ZERO = [](double u, double v){
+    auto cst_ZERO = [](double u, double v, double t){
         return 0.0;
     };
 
@@ -119,6 +119,7 @@ void Parser::convertToParameters()
         struct EquationContext{
             double x=0.0;
             double u=0.0;
+            double t=0.0;
             exprtk::symbol_table<double> symbol_table;
             exprtk::expression<double> expression;
 
@@ -129,6 +130,7 @@ void Parser::convertToParameters()
 
             ctx->symbol_table.add_variable("X", ctx->x);
             ctx->symbol_table.add_variable("U", ctx->u);
+            ctx->symbol_table.add_variable("T", ctx->t);
             ctx->symbol_table.add_constants();
 
             ctx->expression.register_symbol_table(ctx->symbol_table);
@@ -136,10 +138,11 @@ void Parser::convertToParameters()
 
             if (!expr_parser.compile(value,ctx->expression)) throw std::runtime_error("Compilation error "+value);
 
-            auto func = [ctx](double x_val, double u_val) -> double
+            auto func = [ctx](double x_val, double u_val, double t_val) -> double
             {
                 ctx->x=x_val;
                 ctx->u=u_val;
+                ctx->t=t_val;
 
                 return ctx->expression.value();
             };

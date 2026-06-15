@@ -2,24 +2,23 @@
 
 //========== Constructor/Destructor ==========
 
-Grid_1D::Grid_1D(double x_start, double x_end, double growFactor, double A, int int_order, int numbOfElements): m_x_start(x_start), m_x_end(x_end), 
-            m_growFactor(growFactor), m_A(A), m_N_int(int_order), m_numbOfElements(numbOfElements)
-            {
+Grid_1D::Grid_1D(ConfigParameters &config) : m_config(config)
+{
                 
-                std::cout<<std::string(60, '=');
+    std::cout<<std::string(60, '=');
                 
-                std::cout<<"\n\n\n \t\t\tGRID SECTION \n\n\n";
+    std::cout<<"\n\n\n \t\t\tGRID SECTION \n\n\n";
                 
-                std::cout<<"\t\t"<<std::string(4, '#')<<" GRID PARAMETERS "<<std::string(4, '#')<<"\n\n";
-                std::cout<<"\tx_start = "<<m_x_start<<"\n";
-                std::cout<<"\tx_end = "<<m_x_end<<"\n";
-                std::cout<<"\tGrow Factor = "<<m_growFactor<<"\n";
-                std::cout<<"\tAttraction Constant = "<<m_A<<"\n";
-                std::cout<<"\tGrid Integration Order = "<<m_N_int<<"\n";
-                std::cout<<"\tNumber of elements = "<<m_numbOfElements<<"\n\n";
-                std::cout<<"\t\t"<<"# GRID PARAMETERS END #\n\n";
-                m_nodes.resize(m_numbOfElements+1, 0.0);
-            }
+    std::cout<<"\t\t"<<std::string(4, '#')<<" GRID PARAMETERS "<<std::string(4, '#')<<"\n\n";
+    std::cout<<"\tx_start = "<<m_config.x_start<<"\n";
+    std::cout<<"\tx_end = "<<m_config.x_end<<"\n";
+    std::cout<<"\tGrow Factor = "<<m_config.growFactor<<"\n";
+    std::cout<<"\tAttraction Constant = "<<m_config.A<<"\n";
+    std::cout<<"\tGrid Integration Order = "<<m_config.integrationOrderGrid<<"\n";
+    std::cout<<"\tNumber of elements = "<<m_config.numbOfElements<<"\n\n";
+    std::cout<<"\t\t"<<"# GRID PARAMETERS END #\n\n";
+    m_nodes.resize(m_config.numbOfElements+1, 0.0);
+}
 
 Grid_1D::~Grid_1D(){}
 //============================================

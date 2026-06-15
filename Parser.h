@@ -37,7 +37,7 @@
         double omega;
         double t_max;
         //Equations
-        std::vector<std::function<double(double, double)>> Functions;
+        std::vector<std::function<double(double, double, double)>> Functions;
 
     };
 

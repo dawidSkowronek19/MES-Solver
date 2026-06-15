@@ -3,9 +3,10 @@
 
 #include <iostream>
 #include "MathSolver.h"
+#include "Parser.h"
 class Physics{
     public:
-        Physics(MathSolver &math);
+        Physics(MathSolver &math, ConfigParameters &config);
         virtual ~Physics() = default;
 
         virtual void connectTime(const double *t);
@@ -32,6 +33,8 @@ class Physics{
 
     protected:
         MathSolver &m_math;
+        ConfigParameters m_config;
+        double du;
     private:
         const double *m_t = nullptr;
 };
@@ -41,7 +44,7 @@ class Poisson : public Physics{
     // d2/dx2 u(x) = D(x)
 
     public:
-        Poisson(MathSolver &math);
+        Poisson(MathSolver &math, ConfigParameters &config);
         Eigen::VectorXd solver(std::vector<double> &S, std::vector<double> &F) override;
         double D(double x) override;
 };
@@ -53,7 +56,7 @@ class GeneralPDE : public Physics{
         // [d2/dx2 + B(x) d/dx +C(x)]u(x)=\lambda u(x)
 
     public:
-        GeneralPDE(MathSolver &math);
+        GeneralPDE(MathSolver &math, ConfigParameters &config);
         Eigen::VectorXd solver(std::vector<double> &S, std::vector<double> &F) override;
         std::pair<Eigen::VectorXd, Eigen::MatrixXd> EigenSolver(std::vector<double> &S, std::vector<double> &M) override;
 
@@ -78,7 +81,7 @@ class GeneralSymetricPDE : public Physics{
     // [d2/dx2 +C(x)]u(x)=D(x)
     // [d2/dx2 +C(x)]u(x)=\lambda u(x)
     public:
-        GeneralSymetricPDE(MathSolver &math);
+        GeneralSymetricPDE(MathSolver &math, ConfigParameters &parameters);
         Eigen::VectorXd solver(std::vector<double> &S, std::vector<double> &F) override;
         std::pair<Eigen::VectorXd, Eigen::MatrixXd> EigenSolver(std::vector<double> &S, std::vector<double> &M) override;
 

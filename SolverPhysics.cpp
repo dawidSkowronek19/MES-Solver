@@ -3,7 +3,7 @@
 //==================== PHYSICS PART ==============================
 
 // *****************************************************************
-Physics::Physics(MathSolver &math) : m_math(math)
+Physics::Physics(MathSolver &math, ConfigParameters &config) : m_math(math), m_config(config)
 {
     std::cout<<std::string(60, '=')<<"\n";
     std::cout<<"\t\t\tPHYSICS SECTION\n\n";
@@ -46,12 +46,15 @@ double Physics::getCurrentTime(){return (m_t!=nullptr) ? *m_t : 0.0; }
 
 //Poisson
 
-Poisson::Poisson(MathSolver &math) : Physics(math)
+Poisson::Poisson(MathSolver &math, ConfigParameters &config) : Physics(math, config)
 {
     std::cout<<"Poisson\n";
 }
 
-double Poisson::D(double x) {return -1.0;}
+double Poisson::D(double x) 
+{
+    return m_config.Functions[2](x,0.0, 0.0);
+}
 
 
 Eigen::VectorXd Poisson::solver(std::vector<double> &S, std::vector<double> &F)
@@ -64,7 +67,7 @@ Eigen::VectorXd Poisson::solver(std::vector<double> &S, std::vector<double> &F)
 
 //General PDE
 
-GeneralPDE::GeneralPDE(MathSolver &math) : Physics(math)
+GeneralPDE::GeneralPDE(MathSolver &math, ConfigParameters &config) : Physics(math, config)
 {
     std::cout<<"General form PDE\n";
 }
@@ -72,59 +75,59 @@ GeneralPDE::GeneralPDE(MathSolver &math) : Physics(math)
 double GeneralPDE::B(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[0](x,u,t);
 }
 double GeneralPDE::C(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[1](x,u,t);
 }
 double GeneralPDE::D(double x, double u) 
 {
     double t=getCurrentTime();
-    return 1.0;
+    return m_config.Functions[2](x,u,t);
 }
 
 double GeneralPDE::B(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[0](x,0.0,t);
 }
 double GeneralPDE::C(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[1](x,0.0,t);
 }
 double GeneralPDE::D(double x) 
 {
     double t=getCurrentTime();
-    return 1.0;
+    return m_config.Functions[2](x,0.0,t);
 }
 double GeneralPDE::E(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[3](x,0.0,t);
 }
 double GeneralPDE::F(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[4](x,0.0,t); //finish
 }
 
 double GeneralPDE::dB_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return (B(x,u+du)-B(x,u-du))/(2.0*du);
 }
 double GeneralPDE::dC_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return (C(x,u+du)-C(x,u-du))/(2.0*du);;
 }
 double GeneralPDE::dD_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return (D(x,u+du)-D(x,u-du))/(2.0*du);;
 }
 
 
@@ -140,7 +143,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> GeneralPDE::EigenSolver(std::vector<
 
 //General symetric PDE
 
-GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math) : Physics(math)
+GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math, ConfigParameters &config) : Physics(math, config)
 {
     std::cout<<"General symetric form PDE\n";
 }
@@ -148,44 +151,44 @@ GeneralSymetricPDE::GeneralSymetricPDE(MathSolver &math) : Physics(math)
 double GeneralSymetricPDE::C(double x, double u) 
 {
     double t=getCurrentTime();
-    return u*x*(1-x);
+    return m_config.Functions[1](x,u,t);
 }
 double GeneralSymetricPDE::D(double x, double u) 
 {
     double t=getCurrentTime();
-    return u*u/sin(x*x+1e-6);
+    return m_config.Functions[2](x,u,t);
 }
 
 double GeneralSymetricPDE::dC_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return x*(x-1);
+    return (C(x,u+du)-C(x,u-du))/(2.0*du);
 }
 double GeneralSymetricPDE::dD_du(double x, double u) 
 {
     double t=getCurrentTime();
-    return 2*u/sin(x*x+1e-6);
+    return (D(x,u+du)-D(x,u-du))/(2.0*du);
 }
 
 double GeneralSymetricPDE::C(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[1](x,0.0,t);
 }
 double GeneralSymetricPDE::D(double x) 
 {
     double t=getCurrentTime();
-    return x*x;
+    return m_config.Functions[2](x,0.0,t);
 }
 double GeneralSymetricPDE::E(double x) 
 {
     double t=getCurrentTime();
-    return 0.0;
+    return m_config.Functions[3](x,0.0,t);
 }
 double GeneralSymetricPDE::F(double x) 
 {
     double t=getCurrentTime();
-    return 1.0;
+    return m_config.Functions[4](x,0.0,t);
 }
 
 
