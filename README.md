@@ -2,6 +2,9 @@
 
 A C++ implementation of the 1D Finite Element Method for solving boundary value problems, transient dynamics, and eigenvalue problems. The solver reads configurations and mathematical expressions at runtime, eliminating the need to recompile when changing equation parameters.
 
+## PROBLEMS
+* **EIGEN PROBLEMS** There might occur some errors during solving eigen problems, work in progress
+
 ## Capabilities
 
 * **Stationary Linear:** Solves standard 1D linear PDEs.
