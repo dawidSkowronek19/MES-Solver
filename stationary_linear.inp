@@ -7,7 +7,7 @@
 	Numb_Of_elements = 100
 
 [ SOLVER ]
-	work_type=time_dependent
+	work_type=stationary_linear
 	beta =0.25
 	gamma= 0.5
 	epsilon=1e-8
@@ -19,12 +19,12 @@
 	sh_func_deg=2
 
 [ BOUNDARYCONDITIONS ]
-	BC1 = Neuman/0/0.0
+	BC1 = Dirichlet/0/0.0
 	BC2= Neuman/100/0.0
 
 [ FUNCTIONS ]
-	E=1.0
-	F=-x*t
+	D=x*cos(40*x)
+	C=log(x+0.5)*sin(10.0*x)
 [ INITIALVALUES ]
 	u = if(x >= 0.5, 1, 0)
 	v=0.0

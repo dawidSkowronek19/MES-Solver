@@ -4,7 +4,7 @@
 	Grow_Factor = 0.5
 	A=10.0
 	Integration_Order = 12
-	Numb_Of_elements = 100
+	Numb_Of_elements = 200
 
 [ SOLVER ]
 	work_type=time_dependent
@@ -12,19 +12,18 @@
 	gamma= 0.5
 	epsilon=1e-8
 	omega=0.2
-	t_max = 3.0
-	dt=0.001
+	t_max = 5.0
+	dt=0.01
 	du=0.001
 	dx_save=0.01
-	sh_func_deg=2
+	sh_func_deg=1
 
 [ BOUNDARYCONDITIONS ]
-	BC1 = Neuman/0/0.0
-	BC2= Neuman/100/0.0
+	BC1 = Dirichlet/0/0.0
+	BC2= Dirichlet/200/0.0
 
 [ FUNCTIONS ]
-	E=1.0
-	F=-x*t
+	E=0.5
 [ INITIALVALUES ]
-	u = if(x >= 0.5, 1, 0)
-	v=0.0
+	u=exp(-(x-0.5)*(x-0.5)*100)
+	v = 0.0

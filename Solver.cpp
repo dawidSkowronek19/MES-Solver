@@ -605,6 +605,8 @@ void Solver::timeDependent_1D_linear()
 
     std::vector<double> ME(N*N,0.0), MF(N*N,0.0);
     std::vector<double> S_eff(N*N, 0.0), F_eff(N, 0.0);
+    Eigen::VectorXd Q_prev(N);
+
 
     Eigen::Map<Eigen::MatrixXd> ME_e(ME.data(), N, N);
     Eigen::Map<Eigen::MatrixXd> MF_e(MF.data(), N, N);
@@ -655,8 +657,8 @@ void Solver::timeDependent_1D_linear()
 
         std::cout<<"DONE\n";
         boundaryConditions("time_dependent", S_eff, F_eff);
-        Eigen::VectorXd Q_prev = Q_e;
-        std::cout<<"\tSolving system of equations...";
+        Q_prev = Q_e;
+        std::cout<<"\tSolving system of equations..."<<std::flush;
         Q_e = S_eff_e.partialPivLu().solve(F_eff_e);
         std::cout<<"DONE\n";
         

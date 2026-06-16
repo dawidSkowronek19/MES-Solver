@@ -4,27 +4,27 @@
 	Grow_Factor = 0.5
 	A=10.0
 	Integration_Order = 12
-	Numb_Of_elements = 100
+	Numb_Of_elements = 200
 
 [ SOLVER ]
-	work_type=time_dependent
+	work_type=stationary_nonlinear
 	beta =0.25
 	gamma= 0.5
-	epsilon=1e-8
-	omega=0.2
+	epsilon=1e-6
+	omega=0.4
 	t_max = 3.0
 	dt=0.001
-	du=0.001
+	du=0.00001
 	dx_save=0.01
-	sh_func_deg=2
+	sh_func_deg=4
 
 [ BOUNDARYCONDITIONS ]
-	BC1 = Neuman/0/0.0
-	BC2= Neuman/100/0.0
+	BC1 = Dirichlet/0/0.0
+	BC2= Neuman/200/0.0
 
 [ FUNCTIONS ]
-	E=1.0
-	F=-x*t
+	D=cos(10*x)
+	C=u*u
 [ INITIALVALUES ]
 	u = if(x >= 0.5, 1, 0)
 	v=0.0

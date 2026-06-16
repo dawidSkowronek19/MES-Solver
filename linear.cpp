@@ -7,13 +7,26 @@ double u(double x) {
     return x<0.5 ? 0.0 : 1.0;}
 double v(double x) {return 0.0;}
 
-int main()
+int main(int argc, char* argv[])
 {
     std::cout<<std::string(60, '*')<<"\n\n";
     std::cout<<"\t\t ONE DIMENTION FEM SOLVER\n\n";
     std::cout<<std::string(60, '*')<<"\n";
 
-    Parser parser("input.inp");
+    std::string input_file="input.inp";
+    if (argc == 2) {
+        input_file = argv[1];
+    } 
+    else if (argc > 2) {
+        for (int i = 1; i < argc - 1; ++i) {
+            if (std::string(argv[i]) == "-in") {
+                input_file = argv[i + 1];
+                break;
+            }
+        }
+    }
+
+    Parser parser(input_file);
     ConfigParameters config = parser.getParameters();
 
     std::cout<<config.shapeFunctionDeg;
