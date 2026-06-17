@@ -8,11 +8,9 @@ Parser::Parser(std::string filename):m_filename(filename)
         return 0.0;
     };
 
-    for (size_t idx=0; idx<5; idx++)
-    {
-        param.Functions.push_back(cst_ZERO);
-    }
 
+
+    param.Functions.assign(5, cst_ZERO);
     readRawData();
     convertToParameters();
 
