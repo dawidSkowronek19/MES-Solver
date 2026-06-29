@@ -12,6 +12,7 @@ int main()
 
     Grid2D testgrid(geoparam);
     testgrid.triangular();
-    testgrid.saveTriangles();
+    testgrid.savePointsList();
+    testgrid.saveTrianglesPoints();
 
 }
