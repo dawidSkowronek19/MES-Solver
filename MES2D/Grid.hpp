@@ -10,6 +10,8 @@
 
 struct Position{
     double x, y;
+
+
 };
 
 
@@ -26,6 +28,9 @@ struct BC{
 
 struct GeometryParameters{
     int EdgeNodesNumber;
+    double h;
+    double toleranceRadius;
+    
     //std::vector<BC> boundaryConditions;
 };
 

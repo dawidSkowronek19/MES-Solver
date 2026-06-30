@@ -5,7 +5,9 @@
 int main()
 {
     GeometryParameters geoparam{
-        10
+        40,
+        0.02,
+        0.01
     };
 
     Grid2D testgrid(geoparam);

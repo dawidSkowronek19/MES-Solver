@@ -9,12 +9,39 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
     //for tests
 
     auto edge_func = [](double t)->Position{
-        return {cos(t),sin(t)};
+        double x, y;
+        if (t<=0.25)
+        {
+            x=t;
+            y=0.0;
+        }
+        else if (t>0.25 && t<=0.5)
+        {
+            x=0.25;
+            y=t-0.25;
+        }
+        else if (t>0.5 && t<=0.75)
+        {
+            x=0.75-t;
+            y=0.25;
+        }
+        else
+        {
+            x=0.0;
+            y=1.0-t;
+        }
+        
+        //x=cos(2*M_PI*t);
+        //y=sin(2*M_PI*t);
+
+
+        return {x,y};
     };
+    
 
     m_edge = edge_func;
     m_edgeStart=0.0;
-    m_edgeEnd=2.0*M_PI;
+    m_edgeEnd=1.0;
 
     std::cout<<"\n\n\n \t\t\tGRID SECTION \n\n\n";
     //std::cout<<"\tL= "<<m_edgeLen<<"\n";
@@ -26,7 +53,7 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
 void Grid2D::triangular()
 {
     std::cout<<"EDGE POINTS... "<<std::flush;
-    double dt = (m_edgeEnd-m_edgeStart)/(m_geoInit.EdgeNodesNumber-1);
+    double dt = (m_edgeEnd-m_edgeStart)/(m_geoInit.EdgeNodesNumber);
     std::vector<Position> oldRing;
     std::vector<Position> newRing;
 
@@ -39,56 +66,161 @@ void Grid2D::triangular()
     }
     std::cout<<"DONE\n";
 
-    auto calculate_normals = [&oldRing](int idx)->Position{
-        Position A = oldRing[idx-1];
-        Position C = oldRing[idx+1];
+    auto calculate_normals = [&oldRing, this](int idx)->Position{
+        int size = oldRing.size();
+        Position A = oldRing[(idx - 1 + size) % size];
+        Position B = oldRing[idx];
+        Position C = oldRing[(idx + 1) % size];
 
-        Position CA = {C.x-A.x, C.y-A.y};
+        double dx1 = B.x - A.x;
+        double dy1 = B.y - A.y;
+        double len1 = sqrt(dx1*dx1 + dy1*dy1);
+        double nx1 = -dy1 / len1;
+        double ny1 = dx1 / len1;
 
-        return {-CA.y, CA.x};
+        double dx2 = C.x - B.x;
+        double dy2 = C.y - B.y;
+        double len2 = sqrt(dx2*dx2 + dy2*dy2);
+        double nx2 = -dy2 / len2;
+        double ny2 = dx2 / len2;
+
+        double nx = nx1 + nx2;
+        double ny = ny1 + ny2;
+        double len = sqrt(nx*nx + ny*ny);
+
+        double dot = nx1 * nx2 + ny1 * ny2;
+        double scale = m_geoInit.h*sqrt(2.0/(1.0+dot));
+    
+
+        return {nx/len * scale, ny/len * scale};
     };
-    std::vector<Position> newRing;
 
     while(true)
     {
+        
+        
+        static int iter = 0;
+        std::cout<<oldRing.size()<<"\n";
+        if (oldRing.size()<3 || ++iter>100)
+            break;
+
+        double cx = 0, cy = 0;
+        for (const auto& p : oldRing) { 
+            cx += p.x; 
+            cy += p.y; 
+        }
+        cx /= oldRing.size();
+        cy /= oldRing.size();
+
+        double max_dist2 = 0.0;
+        for (const auto& p : oldRing) {
+            double d2 = (p.x - cx)*(p.x - cx) + (p.y - cy)*(p.y - cy);
+            if (d2 > max_dist2) max_dist2 = d2;
+        }
+
+
+        if (max_dist2 <= m_geoInit.h * m_geoInit.h * 1.5)
+        {
+
+            int oldRingStartIdx = m_pointsList.size() - oldRing.size();
+            
+
+            m_pointsList.push_back({cx, cy});
+            int centerIdx = m_pointsList.size() - 1;
+
+
+            for (int idx = 0; idx < oldRing.size(); idx++) {
+                int globBL = oldRingStartIdx + idx;
+                int globBR = oldRingStartIdx + ((idx + 1) % oldRing.size());
+                m_trianglesList.push_back({globBL, globBR, centerIdx});
+            }
+            
+            std::cout << "MESH CLOSED\n";
+            break;
+        }
+        // ==========================================
+
+        std::vector<int> mapping(oldRing.size());
+
+
         Position n = calculate_normals(0);
         Position newPoint = {oldRing[0].x + n.x, oldRing[0].y + n.y};
         newRing.push_back(newPoint);
+        mapping[0]=0;
 
         for (int idx=1; idx<oldRing.size(); idx++)
         {
             n = calculate_normals(idx);
             newPoint = {oldRing[idx].x + n.x, oldRing[idx].y + n.y};
-            
-            double dist2 = (newPoint.x - newRing[idx-1].x)*(newPoint.x - newRing[idx-1].x) + (newPoint.y - newRing[idx-1].y)*(newPoint.y - newRing[idx-1].y);
-            
-            if (dist2<m_geoInit.toleranceRadius)
-            {
-                Position avg;
-                Position previous = newRing[idx-1];
-                
-                avg.x = (newPoint.x + previous.x)/2.0;
-                avg.y = (newPoint.y +previous.y)/2.0;
 
-                newRing.pop_back();
-                newRing.push_back(avg);
-            }
-            else
+            //sewwing logic
+            double dist2 = (newPoint.x - newRing.back().x)*(newPoint.x - newRing.back().x) + (newPoint.y - newRing.back().y)*(newPoint.y - newRing.back().y);
+            
+            if (dist2>=m_geoInit.toleranceRadius*m_geoInit.toleranceRadius)
                 newRing.push_back(newPoint);
-
-            if (newRing.size()==0)
-                break;
+            mapping[idx] = newRing.size()-1;
         }
 
-        
-        for (int idx=0; idx<oldRing.size()-1; idx++)
+        double distLastFirst2=(newRing.front().x-newRing.back().x)*(newRing.front().x-newRing.back().x) + (newRing.front().y-newRing.back().y)*(newRing.front().y-newRing.back().y);
+
+        if (newRing.size()>1 && distLastFirst2<m_geoInit.toleranceRadius*m_geoInit.toleranceRadius)
+        {   
+            newRing.pop_back();
+            for (int i=0; i<mapping.size(); i++)
+            {
+                if (mapping[i] == newRing.size())
+                    mapping[i]=0;
+            }
+        }
+        int newRing_PointsNumber = newRing.size();
+        int oldRing_PointsNumber = oldRing.size();
+        int pointList_PointsNumber = m_pointsList.size();
+        m_pointsList.reserve(pointList_PointsNumber+newRing_PointsNumber);
+
+        for (int idx=0; idx<newRing_PointsNumber; idx++)
         {
-            Position BL = oldRing[idx];
-            Position BR = oldRing[idx+1];
+            m_pointsList.push_back(newRing[idx]);
+        }
+
+
+        //creating triangles      
+        int previous_step_pointList_PointsNumber = pointList_PointsNumber - oldRing_PointsNumber;  
+        for (int idx=0; idx<oldRing.size(); idx++)
+        {
+            int loc_BL = idx; //old ring
+            int loc_BR = (idx + 1) % oldRing.size(); //old ring
+            int loc_TL = mapping[loc_BL]; //new ring
+            int loc_TR = mapping[loc_BR]; //new ring
+
+
+            int globBL = previous_step_pointList_PointsNumber +loc_BL;
+            int globBR = previous_step_pointList_PointsNumber +loc_BR;
+
+            int globTL = pointList_PointsNumber + loc_TL;
+            int globTR = pointList_PointsNumber + loc_TR;
+            if (loc_TR!=loc_TL)
+            {
+                if (idx % 2 == 0) 
+                {
+                    m_trianglesList.push_back({globBL, globBR, globTR});
+                    m_trianglesList.push_back({globBL, globTR, globTL});
+                } 
+                else 
+                {
+                    m_trianglesList.push_back({globBL, globBR, globTL});
+                    m_trianglesList.push_back({globBR, globTR, globTL});
+                }
+            }
+            else //for degeneration
+            {
+                m_trianglesList.push_back({globBL, globBR, globTR});
+            }
+
         }
 
         oldRing=newRing;
         newRing.clear();
+        newRing.reserve(oldRing_PointsNumber);
 
     }
     
