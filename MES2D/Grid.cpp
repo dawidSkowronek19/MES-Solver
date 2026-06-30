@@ -5,14 +5,19 @@
 Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
 {
 
-    m_Lx = m_geoInit.r_end.x - m_geoInit.r_start.x;
-    m_Ly = m_geoInit.r_end.y - m_geoInit.r_start.y;
     std::cout<<std::string(60, '=');
-                
+    //for tests
+
+    auto edge_func = [](double t)->Position{
+        return {cos(t),sin(t)};
+    };
+
+    m_edge = edge_func;
+    m_edgeStart=0.0;
+    m_edgeEnd=2.0*M_PI;
+
     std::cout<<"\n\n\n \t\t\tGRID SECTION \n\n\n";
-    std::cout<<"\tx_start= "<<m_geoInit.r_start.x<<" x_end= "<<m_geoInit.r_end.x<<"\n";
-    std::cout<<"\tx_end= "<<m_geoInit.r_start.y<<" y_end= "<<m_geoInit.r_end.y<<"\n";
-    std::cout<<"\tLx= "<<m_Lx<<" Ly= "<<m_Ly<<"\n";
+    //std::cout<<"\tL= "<<m_edgeLen<<"\n";
     
 }
 
@@ -20,46 +25,76 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
 
 void Grid2D::triangular()
 {
-    m_pointsList.resize(m_geoInit.triangles_nbX*m_geoInit.triangles_nbY);
+    std::cout<<"EDGE POINTS... "<<std::flush;
+    double dt = (m_edgeEnd-m_edgeStart)/(m_geoInit.EdgeNodesNumber-1);
+    std::vector<Position> oldRing;
+    std::vector<Position> newRing;
 
-    double dx = m_Lx/(m_geoInit.triangles_nbX-1);
-    double dy = m_Ly/(m_geoInit.triangles_nbY-1);
-    for (int y_idx=0; y_idx<m_geoInit.triangles_nbY; y_idx++)
+    for (int point_idx=0; point_idx<m_geoInit.EdgeNodesNumber; point_idx++)
     {
-        for (int x_idx=0; x_idx<m_geoInit.triangles_nbX; x_idx++)
-        {
-            int l = x_idx + y_idx*m_geoInit.triangles_nbX;
-
-            m_pointsList[l] = {m_geoInit.r_start.x + x_idx*dx,
-                                m_geoInit.r_start.y + y_idx*dy
-                                };
-        }
+        double t = m_edgeStart + dt*point_idx;
+        Position point = m_edge(t);
+        oldRing.push_back(point);
+        m_pointsList.push_back(point);
     }
+    std::cout<<"DONE\n";
 
-    for (int y_idx=0; y_idx<m_geoInit.triangles_nbY-1; y_idx++)
+    auto calculate_normals = [&oldRing](int idx)->Position{
+        Position A = oldRing[idx-1];
+        Position C = oldRing[idx+1];
+
+        Position CA = {C.x-A.x, C.y-A.y};
+
+        return {-CA.y, CA.x};
+    };
+    std::vector<Position> newRing;
+
+    while(true)
     {
-        for (int x_idx=0; x_idx<m_geoInit.triangles_nbX-1; x_idx++)
+        Position n = calculate_normals(0);
+        Position newPoint = {oldRing[0].x + n.x, oldRing[0].y + n.y};
+        newRing.push_back(newPoint);
+
+        for (int idx=1; idx<oldRing.size(); idx++)
         {
-            int l = x_idx + y_idx*m_geoInit.triangles_nbX;
-
-            int DL = l;
-            int DR = l+1;
-            int UL = l+m_geoInit.triangles_nbX;
-            int UR = l+1+m_geoInit.triangles_nbX;
-
+            n = calculate_normals(idx);
+            newPoint = {oldRing[idx].x + n.x, oldRing[idx].y + n.y};
             
+            double dist2 = (newPoint.x - newRing[idx-1].x)*(newPoint.x - newRing[idx-1].x) + (newPoint.y - newRing[idx-1].y)*(newPoint.y - newRing[idx-1].y);
+            
+            if (dist2<m_geoInit.toleranceRadius)
+            {
+                Position avg;
+                Position previous = newRing[idx-1];
+                
+                avg.x = (newPoint.x + previous.x)/2.0;
+                avg.y = (newPoint.y +previous.y)/2.0;
 
-            Triangle t1 = {DL, DR, UR};
-            Triangle t2 = {DL, UR, UL};
+                newRing.pop_back();
+                newRing.push_back(avg);
+            }
+            else
+                newRing.push_back(newPoint);
 
-            m_trianglesList.push_back(t1);
-            m_trianglesList.push_back(t2);
+            if (newRing.size()==0)
+                break;
         }
+
+        
+        for (int idx=0; idx<oldRing.size()-1; idx++)
+        {
+            Position BL = oldRing[idx];
+            Position BR = oldRing[idx+1];
+        }
+
+        oldRing=newRing;
+        newRing.clear();
+
     }
     
 }
 
-void Grid2D::set_boundaryConditions()
+/*void Grid2D::set_boundaryConditions()
 {
     //for test 
     // ********************************************
@@ -84,11 +119,12 @@ void Grid2D::set_boundaryConditions()
             double acc_t = boundaryCondition.t_start + dt*idx;
             Position acc_R = boundaryCondition.r(acc_t);
             m_pointsList[idx] = acc_R;
+            m_boundaryConditionIndexes.push_back(idx);
         }
     }
 
 
-}
+}*/
 
 // ========== save grid ==========
 void Grid2D::saveTrianglesPoints()

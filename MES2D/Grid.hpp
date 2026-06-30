@@ -25,11 +25,8 @@ struct BC{
 };
 
 struct GeometryParameters{
-    Position r_start, r_end;
-    int triangles_nbX;
-    int triangles_nbY;
-
-    std::vector<BC> boundaryConditions;
+    int EdgeNodesNumber;
+    //std::vector<BC> boundaryConditions;
 };
 
 class Grid2D{
@@ -41,10 +38,13 @@ class Grid2D{
         void set_boundaryConditions();
     private:
         GeometryParameters m_geoInit;
-        double m_Lx, m_Ly;
+        
+        double m_edgeLen;
+        double m_edgeStart, m_edgeEnd;
+        std::function<Position(double)> m_edge;
 
         std::vector<Position> m_pointsList;
-        std::vector<BC> m_boundaryConditionIndexes;
+        //std::vector<int> m_boundaryConditionIndexes;
         std::vector<Triangle> m_trianglesList;
     };
 
