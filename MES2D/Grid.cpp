@@ -10,7 +10,7 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
 
     auto edge_func = [](double t)->Position{
         double x, y;
-        if (t<=0.25)
+        /*if (t<=0.25)
         {
             x=t;
             y=0.0;
@@ -30,9 +30,10 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
             x=0.0;
             y=1.0-t;
         }
+        */
         
-        //x=cos(2*M_PI*t);
-        //y=sin(2*M_PI*t);
+        x=cos(2*M_PI*t);
+        y=sin(2*M_PI*t);
 
 
         return {x,y};
@@ -101,7 +102,7 @@ void Grid2D::triangular()
         
         static int iter = 0;
         std::cout<<oldRing.size()<<"\n";
-        if (oldRing.size()<3 || ++iter>100)
+        if (oldRing.size()<3 || ++iter>10000)
             break;
 
         double cx = 0, cy = 0;
@@ -224,6 +225,61 @@ void Grid2D::triangular()
 
     }
     
+}
+
+void Grid2D::create_neighboursList()
+{
+    std::vector<std::set<int>> neighboursList(m_pointsList.size());
+    m_neighboursList.resize(m_pointsList.size());
+
+    for (const auto triangle:m_trianglesList)
+    {
+        neighboursList[triangle.p1].insert(triangle.p2);
+        neighboursList[triangle.p1].insert(triangle.p3);
+
+        neighboursList[triangle.p2].insert(triangle.p1);
+        neighboursList[triangle.p2].insert(triangle.p3);
+
+        neighboursList[triangle.p3].insert(triangle.p1);
+        neighboursList[triangle.p3].insert(triangle.p2);
+
+    }
+
+    for (int idx=0; idx<neighboursList.size(); idx++)
+    {
+        m_neighboursList[idx].assign(neighboursList[idx].begin(), neighboursList[idx].end());
+    }
+
+
+}
+
+void Grid2D::relaxGrid()
+{
+    std::vector<Position> buffor=m_pointsList;
+    for (int iteration=0; iteration<m_geoInit.iterationMax; iteration++)
+    {
+        
+        for(int idx = m_geoInit.EdgeNodesNumber; idx<m_pointsList.size(); idx++)
+        {
+            int neighboursNb = m_neighboursList[idx].size();
+            Position newPoint = {0.0, 0.0};
+
+            for (const auto& neighbour_idx : m_neighboursList[idx])
+            {
+                Position neighbour = m_pointsList[neighbour_idx];
+                newPoint.x+=neighbour.x;
+                newPoint.y+=neighbour.y;
+            }
+
+            newPoint.x=m_geoInit.alpha*newPoint.x/neighboursNb + (1-m_geoInit.alpha)*m_pointsList[idx].x;
+            newPoint.y=m_geoInit.alpha*newPoint.y/neighboursNb + (1-m_geoInit.alpha)*m_pointsList[idx].y;
+
+            buffor[idx]=newPoint;
+        }
+
+        m_pointsList=buffor;
+
+    }
 }
 
 /*void Grid2D::set_boundaryConditions()

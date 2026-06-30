@@ -7,6 +7,7 @@
 #include <fstream>
 #include <functional>
 #include <cmath>
+#include <set>
 
 struct Position{
     double x, y;
@@ -30,6 +31,8 @@ struct GeometryParameters{
     int EdgeNodesNumber;
     double h;
     double toleranceRadius;
+    int iterationMax;
+    double alpha=0.5;
     
     //std::vector<BC> boundaryConditions;
 };
@@ -41,6 +44,8 @@ class Grid2D{
         void saveTrianglesPoints();
         void savePointsList();
         void set_boundaryConditions();
+        void create_neighboursList();
+        void relaxGrid();
     private:
         GeometryParameters m_geoInit;
         
@@ -51,6 +56,7 @@ class Grid2D{
         std::vector<Position> m_pointsList;
         //std::vector<int> m_boundaryConditionIndexes;
         std::vector<Triangle> m_trianglesList;
+        std::vector<std::vector<int>> m_neighboursList;
     };
 
 #endif
