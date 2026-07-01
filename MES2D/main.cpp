@@ -5,9 +5,9 @@
 int main()
 {
     GeometryParameters geoparam{
-        50,
-        2*sin(M_PI/50),
-        2*0.7*sin(M_PI/50),
+        18,
+        2*sin(M_PI/18),
+        2*0.3*sin(M_PI/18),
         100
     };
 

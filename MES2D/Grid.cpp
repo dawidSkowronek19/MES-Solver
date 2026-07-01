@@ -73,27 +73,24 @@ void Grid2D::triangular()
         Position B = oldRing[idx];
         Position C = oldRing[(idx + 1) % size];
 
-        double dx1 = B.x - A.x;
-        double dy1 = B.y - A.y;
-        double len1 = sqrt(dx1*dx1 + dy1*dy1);
-        double nx1 = -dy1 / len1;
-        double ny1 = dx1 / len1;
+        Position BA = B-A;
+        Position normal1 = {-BA.y(), BA.x()};
+        normal1/=normal1.len();
 
-        double dx2 = C.x - B.x;
-        double dy2 = C.y - B.y;
-        double len2 = sqrt(dx2*dx2 + dy2*dy2);
-        double nx2 = -dy2 / len2;
-        double ny2 = dx2 / len2;
+        Position CB = C-B;
+        Position normal2 = {-CB.y(), CB.x()};
+        normal2/=normal2.len();
 
-        double nx = nx1 + nx2;
-        double ny = ny1 + ny2;
-        double len = sqrt(nx*nx + ny*ny);
 
-        double dot = nx1 * nx2 + ny1 * ny2;
+        Position normalB = normal1 + normal2;
+        normalB/=normalB.len();
+
+
+        double dot = normal1.dot(normal2);
         double scale = m_geoInit.h*sqrt(2.0/(1.0+dot));
     
 
-        return {nx/len * scale, ny/len * scale};
+        return normalB*scale;
     };
 
     while(true)
@@ -105,18 +102,20 @@ void Grid2D::triangular()
         if (oldRing.size()<3 || ++iter>10000)
             break;
 
-        double cx = 0, cy = 0;
+        Position avg={0.0, 0.0};
         for (const auto& p : oldRing) { 
-            cx += p.x; 
-            cy += p.y; 
+            avg+=p; 
         }
-        cx /= oldRing.size();
-        cy /= oldRing.size();
+
+        avg /=oldRing.size();
 
         double max_dist2 = 0.0;
-        for (const auto& p : oldRing) {
-            double d2 = (p.x - cx)*(p.x - cx) + (p.y - cy)*(p.y - cy);
-            if (d2 > max_dist2) max_dist2 = d2;
+        for (const auto& p : oldRing) 
+        {
+            Position diff = p-avg;
+            double dist2 = diff.len2();
+
+            if (dist2 > max_dist2) max_dist2 = dist2;
         }
 
 
@@ -126,11 +125,12 @@ void Grid2D::triangular()
             int oldRingStartIdx = m_pointsList.size() - oldRing.size();
             
 
-            m_pointsList.push_back({cx, cy});
+            m_pointsList.push_back(avg);
             int centerIdx = m_pointsList.size() - 1;
 
 
-            for (int idx = 0; idx < oldRing.size(); idx++) {
+            for (int idx = 0; idx < oldRing.size(); idx++) 
+            {
                 int globBL = oldRingStartIdx + idx;
                 int globBR = oldRingStartIdx + ((idx + 1) % oldRing.size());
                 m_trianglesList.push_back({globBL, globBR, centerIdx});
@@ -145,26 +145,24 @@ void Grid2D::triangular()
 
 
         Position n = calculate_normals(0);
-        Position newPoint = {oldRing[0].x + n.x, oldRing[0].y + n.y};
+        Position newPoint = oldRing[0] + n;
         newRing.push_back(newPoint);
         mapping[0]=0;
 
         for (int idx=1; idx<oldRing.size(); idx++)
         {
             n = calculate_normals(idx);
-            newPoint = {oldRing[idx].x + n.x, oldRing[idx].y + n.y};
+            newPoint = oldRing[idx] + n;
 
             //sewwing logic
-            double dist2 = (newPoint.x - newRing.back().x)*(newPoint.x - newRing.back().x) + (newPoint.y - newRing.back().y)*(newPoint.y - newRing.back().y);
-            
+            double dist2 = (newPoint - newRing.back()).len2();
             if (dist2>=m_geoInit.toleranceRadius*m_geoInit.toleranceRadius)
                 newRing.push_back(newPoint);
             mapping[idx] = newRing.size()-1;
         }
 
-        double distLastFirst2=(newRing.front().x-newRing.back().x)*(newRing.front().x-newRing.back().x) + (newRing.front().y-newRing.back().y)*(newRing.front().y-newRing.back().y);
-
-        if (newRing.size()>1 && distLastFirst2<m_geoInit.toleranceRadius*m_geoInit.toleranceRadius)
+        double dist2LastFirst = (newRing.front()-newRing.back()).len2();
+        if (newRing.size()>1 && dist2LastFirst<m_geoInit.toleranceRadius*m_geoInit.toleranceRadius)
         {   
             newRing.pop_back();
             for (int i=0; i<mapping.size(); i++)
@@ -267,12 +265,10 @@ void Grid2D::relaxGrid()
             for (const auto& neighbour_idx : m_neighboursList[idx])
             {
                 Position neighbour = m_pointsList[neighbour_idx];
-                newPoint.x+=neighbour.x;
-                newPoint.y+=neighbour.y;
+                newPoint+=neighbour;
             }
 
-            newPoint.x=m_geoInit.alpha*newPoint.x/neighboursNb + (1-m_geoInit.alpha)*m_pointsList[idx].x;
-            newPoint.y=m_geoInit.alpha*newPoint.y/neighboursNb + (1-m_geoInit.alpha)*m_pointsList[idx].y;
+            newPoint = m_geoInit.alpha*newPoint/neighboursNb + (1.0-m_geoInit.alpha)*m_pointsList[idx];
 
             buffor[idx]=newPoint;
         }
@@ -334,7 +330,7 @@ void Grid2D::savePointsList()
 
     for (const auto& point : m_pointsList)
     {
-        point_lists_file<<point.x<<" "<<point.y<<"\n";
+        point_lists_file<<point<<"\n";
     }
 
 }

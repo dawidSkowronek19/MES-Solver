@@ -8,12 +8,8 @@
 #include <functional>
 #include <cmath>
 #include <set>
+#include "Point.hpp"
 
-struct Position{
-    double x, y;
-
-
-};
 
 
 struct Triangle{
