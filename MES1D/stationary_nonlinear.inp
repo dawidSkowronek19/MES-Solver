@@ -24,7 +24,7 @@
 
 [ FUNCTIONS ]
 	D=cos(10*x)
-	C=u*u
+	C=u*u+sin(u)
 [ INITIALVALUES ]
 	u = if(x >= 0.5, 1, 0)
 	v=0.0

@@ -4,7 +4,7 @@
 	Grow_Factor = 0.5
 	A=10.0
 	Integration_Order = 12
-	Numb_Of_elements = 100
+	Numb_Of_elements = 200
 
 [ SOLVER ]
 	work_type=stationary_linear
@@ -16,14 +16,14 @@
 	dt=0.001
 	du=0.001
 	dx_save=0.01
-	sh_func_deg=2
+	sh_func_deg=4
 
 [ BOUNDARYCONDITIONS ]
 	BC1 = Dirichlet/0/0.0
-	BC2= Neuman/100/0.0
+	BC2= Neuman/200/0.0
 
 [ FUNCTIONS ]
-	D=x*cos(40*x)
+	D=x*cos(exp(x)*x)
 	C=log(x+0.5)*sin(10.0*x)
 [ INITIALVALUES ]
 	u = if(x >= 0.5, 1, 0)

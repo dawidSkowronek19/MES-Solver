@@ -20,7 +20,7 @@
 
 [ BOUNDARYCONDITIONS ]
 	BC1 = Dirichlet/0/0.0
-	BC2= Dirichlet/200/0.0
+	BC2= Neuman/200/0.0
 
 [ FUNCTIONS ]
 	E=0.5
