@@ -42,6 +42,10 @@ class Grid2D{
         void set_boundaryConditions();
         void create_neighboursList();
         void relaxGrid();
+
+
+        Triangle getTriangle(int idx) const;
+        Position getPoint(int idx) const;
     private:
         GeometryParameters m_geoInit;
         
