@@ -88,7 +88,7 @@ double ShapeFunction::divSilvester(const int i, const double lambda) const
             mult*=(m_p*lambda-mult_idx)/(i-mult_idx);
         }
 
-        div+=(1.0/i-sum_idx)*mult;
+        div+=(static_cast<double>(m_p) / (i - sum_idx)) * mult;
     }
 
     return div;
@@ -126,7 +126,7 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
     dphi_dksi = divSilvester(I,lambda1)*dlambda1_dksi*S_J*S_K + S_I*divSilvester(J,lambda2)*dlambda2_dksi*S_K;
     dphi_deta = divSilvester(I,lambda1)*dlambda1_deta*S_J*S_K + S_I*S_J*divSilvester(K,lambda3)*dlambda3_deta;
 
-    return {dphi_deta, dphi_dksi};
+    return {dphi_dksi, dphi_deta};
 
 }
 
@@ -135,9 +135,9 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 
 // ================================== Jacobian ======================================
 
-std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials()
+std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials() //J is transposed
 {
-    Eigen::Matrix2d J(2,2);
+    Eigen::Matrix2d J;
     J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
     J(0,1) = m_accElement.p2.y() - m_accElement.p1.y();
     J(1,0) = m_accElement.p3.x() - m_accElement.p1.x();
