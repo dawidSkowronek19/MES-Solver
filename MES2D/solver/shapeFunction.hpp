@@ -2,6 +2,7 @@
 #define SHAPE_HPP
 #include "../mesh/Grid.hpp"
 #include <vector>
+#include <iostream>
 #include <Eigen/Dense>
 #include <tuple>
 
@@ -19,6 +20,7 @@ class ShapeFunction{
         void find_accElementPoints(Triangle Element);
         Position loc_to_cartes(double ksi ,double eta); //with preconditioning, requires find_accElementPoints() before
         Position loc_to_cartes(double ksi, double eta, Triangle element); //
+
 
     private:
         const Grid2D& m_grid;

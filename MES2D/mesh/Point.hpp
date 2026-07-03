@@ -5,6 +5,7 @@
 class Position{
     public:
         Position(double x, double y);
+        Position();
 
         double dot(const Position vec) const;
         double len2() const;

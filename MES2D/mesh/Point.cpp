@@ -11,6 +11,7 @@ Position operator*(double alpha, const Position& pos) {
 //================ POSITION CLASS =====================
 
 Position::Position(double x, double y) : m_x(x), m_y(y) {}
+Position::Position() : m_x(0.0), m_y(0.0) {}
 
 
 double Position::x() const {return m_x;}

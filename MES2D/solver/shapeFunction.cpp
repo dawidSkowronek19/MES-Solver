@@ -138,7 +138,6 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials()
 {
     Eigen::Matrix2d J(2,2);
-    double J_det;
     J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
     J(0,1) = m_accElement.p2.y() - m_accElement.p1.y();
     J(1,0) = m_accElement.p3.x() - m_accElement.p1.x();
@@ -149,3 +148,6 @@ std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssent
 
     return {J, J_inv, J_det};
 }
+
+// ==================================================================================
+

@@ -2,6 +2,7 @@
 
 // ========== CONSTRUCTOR ============
 
+
 Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
 {
 
@@ -32,7 +33,7 @@ Grid2D::Grid2D(GeometryParameters geoInit) : m_geoInit(geoInit)
         }
         */
         
-        x=0.7*cos(2*M_PI*t);
+        x=cos(2*M_PI*t);
         y=sin(2*M_PI*t);
 
 
