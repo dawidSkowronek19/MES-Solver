@@ -1,58 +1,64 @@
+#ifndef PHYSICS_HPP
+#define PHYSICS_HPP
+
 #include <iostream>
 #include <vector>
 #include <Eigen/Dense>
 #include <string>
+#include <functional>
 #include "../mesh/Point.hpp"
+#include "../mesh/Grid.hpp"
 
+//parents
 
-class Math{};
-
-class Physics{
+class BilinearOperator{
 
     public:
-        Physics(Math &m_math);
-        virtual ~Physics() = default;
-        virtual double A(Position r);
-        virtual double B(Position r);
-        virtual double C(Position r);
-        virtual double D(Position r);
-        virtual double E(Position r);
+        BilinearOperator(const std::vector<Triangle> &triangles, const std::vector<Position> &m_points);
+        virtual ~BilinearOperator() = default;
+        virtual Eigen::MatrixXd localMatrix() = 0;
 
-        virtual Position v(Position r);
-
-        virtual Eigen::VectorXd stationary_solver(const Eigen::MatrixXd& S, const Eigen::VectorXd& F);
-        virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> eigen_solver(const Eigen::MatrixXd& S, const Eigen::MatrixXd& M);
     protected:
-        Math &m_math;
+        const std::vector<Triangle> &m_triangles;
+        const std::vector<Position> &m_points;
+};
 
+class LinearOperator{
+
+    public:
+        LinearOperator(const std::vector<Triangle> &triangles, const std::vector<Position> &m_points);
+        virtual ~LinearOperator() = default;
+        virtual Eigen::VectorXd localVector() = 0;
+
+    protected:
+        const std::vector<Triangle> &m_triangles;
+        const std::vector<Position> &m_points;
+};
+
+
+// ==================
+
+//childrens
+
+class LaplaceIntegrator : public BilinearOperator{
+    
+    public:
+        LaplaceIntegrator(const std::vector<Triangle> &Triangles, const std::vector<Position> &points,
+                            const std::function<double(double)> &A);
+        LaplaceIntegrator(std::function<double(double)> &A);
+        Eigen::MatrixXd localMatrix() override;
     private:
-        const double *m_t = nullptr;
+        std::function<double(double)> m_A;
 
 };
 
-class Poisson : public Physics{
+class SourceIntegrator : public LinearOperator{
     public:
-        Poisson(Math &math);
-        Eigen::VectorXd stationary_solver(const Eigen::MatrixXd& S, const Eigen::VectorXd& F) override;
-        double A(Position r) override;
-        double C(Position r) override;
+        SourceIntegrator(const std::vector<Triangle> &Triangles, const std::vector<Position> &points,
+                        const std::function<double(double)> &A);
+        Eigen::VectorXd localVector() override;
+    private:
+        std::function<double(double)> m_A;
 };
 
-class GeneralPDE : public Physics{
-    public:
-        GeneralPDE(Math &math);
-        Eigen::VectorXd stationary_solver(const Eigen::MatrixXd& S, const Eigen::VectorXd& F) override;
-        std::pair<Eigen::VectorXd, Eigen::MatrixXd> eigen_solver(const Eigen::MatrixXd& S, const Eigen::MatrixXd& M) override;
-
-        double A(Position r) override;
-        double B(Position r) override;
-        double C(Position r) override;
-        double D(Position r) override;
-        double E(Position r) override;
-        
-        Position v(Position r) override;
-};
-
-class GeneralSymetricPDE : public Physics{
-
-};
+#endif
