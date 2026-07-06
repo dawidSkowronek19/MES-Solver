@@ -8,31 +8,32 @@
 #include <functional>
 #include "../mesh/Point.hpp"
 #include "../mesh/Grid.hpp"
+#include "./shapeFunction.hpp"
 
 //parents
 
 class BilinearOperator{
 
     public:
-        BilinearOperator(const std::vector<Triangle> &triangles, const std::vector<Position> &m_points);
+        BilinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func);
         virtual ~BilinearOperator() = default;
-        virtual Eigen::MatrixXd localMatrix() = 0;
+        virtual Eigen::MatrixXd S_loc(size_t element_idx) = 0;
 
     protected:
-        const std::vector<Triangle> &m_triangles;
-        const std::vector<Position> &m_points;
+        const Grid2D &m_Grid;
+        const ShapeFunction &m_shfunc;
 };
 
 class LinearOperator{
 
     public:
-        LinearOperator(const std::vector<Triangle> &triangles, const std::vector<Position> &m_points);
+        LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func);
         virtual ~LinearOperator() = default;
-        virtual Eigen::VectorXd localVector() = 0;
+        virtual Eigen::VectorXd F_loc(size_t element_idx) = 0;
 
     protected:
-        const std::vector<Triangle> &m_triangles;
-        const std::vector<Position> &m_points;
+        const Grid2D &m_Grid;
+        const ShapeFunction &m_shfunc;
 };
 
 
@@ -43,22 +44,30 @@ class LinearOperator{
 class LaplaceIntegrator : public BilinearOperator{
     
     public:
-        LaplaceIntegrator(const std::vector<Triangle> &Triangles, const std::vector<Position> &points,
-                            const std::function<double(double)> &A);
-        LaplaceIntegrator(std::function<double(double)> &A);
-        Eigen::MatrixXd localMatrix() override;
+        LaplaceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func  ,const std::function<double(Position)> &A);
+        Eigen::MatrixXd S_loc(size_t element_idx) override;
     private:
-        std::function<double(double)> m_A;
+        std::function<double(Position)> m_A;
 
+};
+
+class AdvectionIntegrator : public BilinearOperator{
+    public: AdvectionIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func ,const std::function<Position(Position)> &v);
+
+    Eigen::MatrixXd S_loc(size_t element_idx) override;
+
+    private:
+        std::function<Position(Position)> m_v;
 };
 
 class SourceIntegrator : public LinearOperator{
     public:
-        SourceIntegrator(const std::vector<Triangle> &Triangles, const std::vector<Position> &points,
-                        const std::function<double(double)> &A);
-        Eigen::VectorXd localVector() override;
+        SourceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<double(Position)> &A);
+        Eigen::VectorXd F_loc(size_t element_idx) override;
     private:
-        std::function<double(double)> m_A;
+        std::function<double(Position)> m_A;
 };
+
+
 
 #endif
