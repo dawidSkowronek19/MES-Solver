@@ -13,27 +13,23 @@ struct ElementPointPositions{
 class ShapeFunction{
 
     public:
-        ShapeFunction(Grid2D& grid, int p);
-        double phi(double ksi ,double eta, int idx);
-        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> JacobiEssentials();
-        std::pair<double, double> div_phi(double ksi, double eta, int idx);
-        void find_accElementPoints(Triangle Element);
-        Position loc_to_cartes(double ksi ,double eta); //with preconditioning, requires find_accElementPoints() before
-        Position loc_to_cartes(double ksi, double eta, Triangle element); //
+        ShapeFunction(const ElementPointPositions &acc_element, const int p);
+        double phi(double ksi ,double eta, int idx) const;
+        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> JacobiEssentials() const;
+        std::pair<double, double> div_phi(double ksi, double eta, int idx) const;
+        Position loc_to_cartes(double ksi ,double eta) const;
 
 
     private:
-        const Grid2D& m_grid;
         const int m_p;
         ElementPointPositions m_accElement;
-        double m_ksi, m_eta;
         std::vector<std::tuple<int, int, int>> m_IJK;
 
-        std::tuple<double, double, double> lambda_gen();
+        std::tuple<double, double, double> lambda_gen(const double ksi, const double eta) const;
         double Silvester(const int i, const double lambda) const;
         double divSilvester(const int i, const double lambda) const;
 
-        Position XY(const Position &p1, const Position &p2, const Position &p3) const;
+        Position KsiEta_to_XY(double ksi, double eta) const;
 
 
 };

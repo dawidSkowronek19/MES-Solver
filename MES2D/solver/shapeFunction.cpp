@@ -1,6 +1,6 @@
 #include "shapeFunction.hpp"
 
-ShapeFunction::ShapeFunction(Grid2D& grid, int p) : m_grid(grid), m_p(p)
+ShapeFunction::ShapeFunction(const ElementPointPositions &acc_element, int p) : m_accElement(acc_element), m_p(p)
 {
     for (int k=0; k<=m_p; k++)
     {
@@ -12,52 +12,26 @@ ShapeFunction::ShapeFunction(Grid2D& grid, int p) : m_grid(grid), m_p(p)
     }
 }
 
-void ShapeFunction::find_accElementPoints(Triangle Element)
-{
-    m_accElement={
-        m_grid.getPoint(Element.p1),
-        m_grid.getPoint(Element.p2),
-        m_grid.getPoint(Element.p3)
-    };
-}
 //============================Recalculating to cartesian axis ===================================
-Position ShapeFunction::XY(const Position &p1, const Position &p2, const Position &p3) const
-{
-    double x = p1.x() +(p2.x()-p1.x())*m_ksi + (p3.x() - p1.x())*m_eta;
-    double y = p1.y() + (p2.y()-p1.y())*m_ksi + (p3.y() - p1.y())*m_eta;
-
-    return {x,y};
-}
-
-Position ShapeFunction::loc_to_cartes(double ksi, double eta)
+Position ShapeFunction::KsiEta_to_XY(double ksi, double eta) const
 {
     Position p1 = m_accElement.p1;
     Position p2 = m_accElement.p2;
     Position p3 = m_accElement.p3;
+    
+    
+    double x = p1.x() +(p2.x()-p1.x())*ksi + (p3.x() - p1.x())*eta;
+    double y = p1.y() + (p2.y()-p1.y())*ksi + (p3.y() - p1.y())*eta;
 
-    m_ksi=ksi; m_eta = eta;
-    Position r = XY(p1, p2, p3);
-
-    return r;
+    return {x,y};
 }
 
-Position ShapeFunction::loc_to_cartes(double ksi, double eta, Triangle element)
-{
-    Position p1 = m_grid.getPoint(element.p1);
-    Position p2 = m_grid.getPoint(element.p2);
-    Position p3 = m_grid.getPoint(element.p3);
-
-    m_ksi = ksi; m_eta = eta;
-    Position r = XY(p1,p2,p3);
-
-    return r;
-}
 
 //============================== SHAPE FUNCTION INIT ===================================
 
-std::tuple<double, double, double> ShapeFunction::lambda_gen()
+std::tuple<double, double, double> ShapeFunction::lambda_gen(const double ksi, const double eta) const
 {
-    return {1.0-m_ksi-m_eta, m_ksi, m_eta};
+    return {1.0-ksi-eta, ksi, eta};
 }
 
 double ShapeFunction::Silvester(const int i, const double lambda) const
@@ -96,22 +70,20 @@ double ShapeFunction::divSilvester(const int i, const double lambda) const
 
 
 
-double ShapeFunction::phi(double ksi, double eta, int idx)
+double ShapeFunction::phi(double ksi, double eta, int idx) const
 {
-    m_ksi = ksi; m_eta = eta;
-    auto [lambda1, lambda2, lambda3] = lambda_gen();
+    auto [lambda1, lambda2, lambda3] = lambda_gen(ksi, eta);
     auto [I,J,K] = m_IJK[idx];
 
     return Silvester(I,lambda1)*Silvester(J,lambda2)*Silvester(K, lambda3);
 }
 
-std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx)
+std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx) const
 {
-    m_ksi = ksi; m_eta = eta;
     double dphi_dksi;
     double dphi_deta;
 
-    auto [lambda1, lambda2, lambda3] = lambda_gen();
+    auto [lambda1, lambda2, lambda3] = lambda_gen(ksi, eta);
     auto [I,J,K] = m_IJK[idx];
 
     double S_I = Silvester(I, lambda1);
@@ -135,7 +107,7 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 
 // ================================== Jacobian ======================================
 
-std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials() //J is transposed
+std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials() const //J is transposed
 {
     Eigen::Matrix2d J;
     J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
