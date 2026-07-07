@@ -103,6 +103,28 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 }
 
 
+std::tuple<Eigen::MatrixXd,Eigen::MatrixXd,Eigen::MatrixXd> ShapeFunction::get_cached_values(const std::vector<std::pair<double, double>>&integration_points) const
+{
+    int shfunc_nb = m_IJK.size();
+    Eigen::MatrixXd cachedvalues_phi;
+    Eigen::MatrixXd cachedvalues_dphi_dksi;
+    Eigen::MatrixXd cachedvalues_dphi_deta;
+    
+    for (int shfunc_idx=0; shfunc_idx<shfunc_nb; shfunc_idx++)
+    {
+        for (int point_idx=0; point_idx<integration_points.size(); point_idx++)
+        {
+            const auto [ksi, eta] = integration_points[point_idx];
+            const auto [dphi_dksi, dphi_deta] = div_phi(ksi, eta, shfunc_idx);
+            cachedvalues_phi(point_idx, shfunc_idx) = phi(ksi, eta, shfunc_idx);
+            cachedvalues_dphi_dksi(point_idx, shfunc_idx) = dphi_dksi;
+            cachedvalues_dphi_deta(point_idx, shfunc_idx) = dphi_deta;
+        }
+    }
+
+    return {cachedvalues_phi, cachedvalues_dphi_dksi, cachedvalues_dphi_deta};
+}
+
 //===================================================================================
 
 // ================================== Jacobian ======================================
