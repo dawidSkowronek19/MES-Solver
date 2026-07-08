@@ -29,11 +29,26 @@ SourceIntegrator::SourceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_f
 
 // Laplace
 
-Eigen::MatrixXd LaplaceIntegrator::S_loc(size_t element_idx)
+Eigen::MatrixXd LaplaceIntegrator::S_loc(const Jacobi &jacobi_package, const Quadrature &quad)
 {
-    const auto [J, J_inv, J_det] = m_shfunc.JacobiEssentials();
-
-
     
-    
+    const auto [J, J_inv, J_det] = jacobi_package.JacobiEssentials();
+    int p = m_shfunc.get_p();
+    int sh_nb = (p+1)*(p+2)/2;
+
+    Eigen::MatrixXd S;
+
+    for (int i=0; i<sh_nb; i++)
+    {
+        for (int j=0; j<sh_nb; j++)
+        {
+            for (int q=0; q<quad.get_point_numb(); q++)
+            {
+                double ksi = quad.get_ksi(q);
+                double eta = quad.get_eta(q);
+
+                S(i,j)+=quad.get_weight(q);
+            }
+        }
+    }
 }

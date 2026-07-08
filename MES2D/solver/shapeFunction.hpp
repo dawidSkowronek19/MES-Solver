@@ -18,9 +18,11 @@ class ShapeFunction{
 
     public:
         ShapeFunction(const ElementPointPositions &acc_element, const int p);
-        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> JacobiEssentials() const;
-        std::tuple<Eigen::MatrixXd,Eigen::MatrixXd,Eigen::MatrixXd> get_cached_values(const std::vector<std::pair<double, double>>&integration_points) const;
-        Position loc_to_cartes(double ksi ,double eta) const;
+        
+        double get_phi(const int idx, const int sh_nb) const;
+        double get_dphi_dksi(const int idx, const int sh_nb) const;
+        double get_dphi_deta(const int idx, const int sh_nb) const;
+        int get_p() const;
 
 
     private:
@@ -28,16 +30,26 @@ class ShapeFunction{
         const ElementPointPositions m_accElement;
         std::vector<std::tuple<int, int, int>> m_IJK;
         
+        Eigen::MatrixXd m_phi, m_dphi_dksi, m_dphi_deta;
 
         std::tuple<double, double, double> lambda_gen(const double ksi, const double eta) const;
         double Silvester(const int i, const double lambda) const;
         double divSilvester(const int i, const double lambda) const;
         double phi(double ksi ,double eta, int idx) const;
         std::pair<double, double> div_phi(double ksi, double eta, int idx) const;
-
-        Position KsiEta_to_XY(double ksi, double eta) const;
+        void get_cached_values(const std::vector<std::pair<double, double>>&integration_points);
+        //Position KsiEta_to_XY(double ksi, double eta) const;
 
 
 };
 
+
+class Jacobi{
+    public:
+        Jacobi(const ElementPointPositions &accElement);
+        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> JacobiEssentials() const;
+    private:
+        const ElementPointPositions m_accElement;
+
+};
 #endif

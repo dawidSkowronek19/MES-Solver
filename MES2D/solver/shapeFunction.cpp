@@ -13,7 +13,7 @@ ShapeFunction::ShapeFunction(const ElementPointPositions &acc_element, int p) : 
 }
 
 //============================Recalculating to cartesian axis ===================================
-Position ShapeFunction::KsiEta_to_XY(double ksi, double eta) const
+/*Position ShapeFunction::KsiEta_to_XY(double ksi, double eta) const
 {
     Position p1 = m_accElement.p1;
     Position p2 = m_accElement.p2;
@@ -25,7 +25,7 @@ Position ShapeFunction::KsiEta_to_XY(double ksi, double eta) const
 
     return {x,y};
 }
-
+*/
 
 //============================== SHAPE FUNCTION INIT ===================================
 
@@ -103,12 +103,9 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 }
 
 
-std::tuple<Eigen::MatrixXd,Eigen::MatrixXd,Eigen::MatrixXd> ShapeFunction::get_cached_values(const std::vector<std::pair<double, double>>&integration_points) const
+void ShapeFunction::get_cached_values(const std::vector<std::pair<double, double>>&integration_points)
 {
     int shfunc_nb = m_IJK.size();
-    Eigen::MatrixXd cachedvalues_phi;
-    Eigen::MatrixXd cachedvalues_dphi_dksi;
-    Eigen::MatrixXd cachedvalues_dphi_deta;
     
     for (int shfunc_idx=0; shfunc_idx<shfunc_nb; shfunc_idx++)
     {
@@ -116,20 +113,24 @@ std::tuple<Eigen::MatrixXd,Eigen::MatrixXd,Eigen::MatrixXd> ShapeFunction::get_c
         {
             const auto [ksi, eta] = integration_points[point_idx];
             const auto [dphi_dksi, dphi_deta] = div_phi(ksi, eta, shfunc_idx);
-            cachedvalues_phi(point_idx, shfunc_idx) = phi(ksi, eta, shfunc_idx);
-            cachedvalues_dphi_dksi(point_idx, shfunc_idx) = dphi_dksi;
-            cachedvalues_dphi_deta(point_idx, shfunc_idx) = dphi_deta;
+            m_phi(point_idx, shfunc_idx) = phi(ksi, eta, shfunc_idx);
+            m_dphi_dksi(point_idx, shfunc_idx) = dphi_dksi;
+            m_dphi_deta(point_idx, shfunc_idx) = dphi_deta;
         }
     }
-
-    return {cachedvalues_phi, cachedvalues_dphi_dksi, cachedvalues_dphi_deta};
 }
 
+double ShapeFunction::get_phi(const int point_idx, const int sh_nb) const {return m_phi(point_idx, sh_nb);}
+double ShapeFunction::get_dphi_dksi(const int point_idx, const int sh_nb) const {return m_dphi_dksi(point_idx, sh_nb);}
+double ShapeFunction::get_dphi_deta(const int point_idx, const int sh_nb) const {return m_dphi_deta(point_idx, sh_nb);}
+int ShapeFunction::get_p() const {return m_p;}
 //===================================================================================
 
 // ================================== Jacobian ======================================
 
-std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ShapeFunction::JacobiEssentials() const //J is transposed
+Jacobi::Jacobi(const ElementPointPositions &accElement) : m_accElement(accElement) {}
+
+std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> Jacobi::JacobiEssentials() const //J is transposed
 {
     Eigen::Matrix2d J;
     J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
