@@ -9,6 +9,7 @@
 #include <cmath>
 #include <set>
 #include "Point.hpp"
+#include "../solver/shapeFunction.hpp"
 
 
 
@@ -58,5 +59,22 @@ class Grid2D{
         std::vector<Triangle> m_trianglesList;
         std::vector<std::vector<int>> m_neighboursList;
     };
+
+
+class ElementGeometry{
+    public:
+        ElementGeometry(const ElementPointPositions &accElement);
+        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> get_JacobiEssentials() const;
+        Position cartes(double ksi, double eta) const;
+    private:
+        const ElementPointPositions m_accElement;
+        Eigen::MatrixXd m_J, m_Jinv; 
+        double m_J_det;
+
+        void calcJacobi();
+
+
+
+};
 
 #endif

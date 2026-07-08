@@ -341,3 +341,38 @@ void Grid2D::savePointsList()
     }
 
 }
+
+// ====================================================
+
+// ================================== Element package ======================================
+
+ElementGeometry::ElementGeometry(const ElementPointPositions &accElement) : m_accElement(accElement) {}
+
+void ElementGeometry::calcJacobi()
+{
+    m_J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
+    m_J(0,1) = m_accElement.p2.y() - m_accElement.p1.y();
+    m_J(1,0) = m_accElement.p3.x() - m_accElement.p1.x();
+    m_J(1,1) = m_accElement.p3.y() - m_accElement.p1.y();
+
+    m_J_det = m_J.determinant();
+    m_Jinv = m_J.inverse();
+}
+
+std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> ElementGeometry::get_JacobiEssentials() const //J is transposed
+{
+    return {m_J, m_Jinv, m_J_det};
+}
+
+Position ElementGeometry::cartes(double ksi, double eta) const
+{
+    Position p1 = m_accElement.p1;
+    Position p2 = m_accElement.p2;
+    Position p3 = m_accElement.p3;
+    
+    
+    double x = p1.x() +(p2.x()-p1.x())*ksi + (p3.x() - p1.x())*eta;
+    double y = p1.y() + (p2.y()-p1.y())*ksi + (p3.y() - p1.y())*eta;
+
+    return {x,y};
+}
