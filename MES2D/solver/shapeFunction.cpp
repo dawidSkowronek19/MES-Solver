@@ -12,20 +12,6 @@ ShapeFunction::ShapeFunction(const ElementPointPositions &acc_element, int p) : 
     }
 }
 
-//============================Recalculating to cartesian axis ===================================
-/*Position ShapeFunction::KsiEta_to_XY(double ksi, double eta) const
-{
-    Position p1 = m_accElement.p1;
-    Position p2 = m_accElement.p2;
-    Position p3 = m_accElement.p3;
-    
-    
-    double x = p1.x() +(p2.x()-p1.x())*ksi + (p3.x() - p1.x())*eta;
-    double y = p1.y() + (p2.y()-p1.y())*ksi + (p3.y() - p1.y())*eta;
-
-    return {x,y};
-}
-*/
 
 //============================== SHAPE FUNCTION INIT ===================================
 
@@ -126,23 +112,7 @@ double ShapeFunction::get_dphi_deta(const int point_idx, const int sh_nb) const 
 int ShapeFunction::get_p() const {return m_p;}
 //===================================================================================
 
-// ================================== Jacobian ======================================
 
-Jacobi::Jacobi(const ElementPointPositions &accElement) : m_accElement(accElement) {}
-
-std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> Jacobi::JacobiEssentials() const //J is transposed
-{
-    Eigen::Matrix2d J;
-    J(0,0) = m_accElement.p2.x() - m_accElement.p1.x();
-    J(0,1) = m_accElement.p2.y() - m_accElement.p1.y();
-    J(1,0) = m_accElement.p3.x() - m_accElement.p1.x();
-    J(1,1) = m_accElement.p3.y() - m_accElement.p1.y();
-
-    double J_det = J.determinant();
-    Eigen::Matrix2d J_inv = J.inverse();
-
-    return {J, J_inv, J_det};
-}
 
 // ==================================================================================
 

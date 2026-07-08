@@ -44,12 +44,4 @@ class ShapeFunction{
 };
 
 
-class Jacobi{
-    public:
-        Jacobi(const ElementPointPositions &accElement);
-        std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> JacobiEssentials() const;
-    private:
-        const ElementPointPositions m_accElement;
-
-};
 #endif
