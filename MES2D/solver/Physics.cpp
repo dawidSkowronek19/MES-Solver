@@ -1,8 +1,18 @@
 #include "Physics.hpp"
 
 //Parents
-BilinearOperator::BilinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {}
-LinearOperator::LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {}
+BilinearOperator::BilinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {
+    int p = m_shfunc.get_p();
+    int sh_nb = (p+1)*(p+2)/2;
+
+    m_S = Eigen::MatrixXd::Zero(sh_nb, sh_nb);
+}
+LinearOperator::LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {
+    int p = m_shfunc.get_p();
+    int sh_nb = (p+1)*(p+2)/2;
+
+    m_F = Eigen::VectorXd::Zero(sh_nb);
+}
 
 void BilinearOperator::S_clear(){m_S.setZero();}
 void LinearOperator::F_clear(){m_F.setZero();}
@@ -44,7 +54,7 @@ void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature 
     {
         double ksi = quad.get_ksi(q);
         double eta = quad.get_eta(q);
-
+        double s=0.0;
         Position r = Geometry.cartes(ksi, eta);
         A_eff=J_inv.transpose() * m_A(r) * J_inv;
 
@@ -55,17 +65,18 @@ void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature 
                 double dphi_dksi_I = m_shfunc.get_dphi_dksi(q, i);
                 double dphi_deta_I = m_shfunc.get_dphi_deta(q,i);
 
-                m_S(i,j)+=J_det*quad.get_weight(q)*(
+                s+=J_det*quad.get_weight(q)*(
                     m_shfunc.get_dphi_dksi(q,j)*(A_eff(0,0)*dphi_dksi_I + A_eff(1,0)*dphi_deta_I) +
                     m_shfunc.get_dphi_deta(q,j)*(A_eff(0,1)*dphi_dksi_I + A_eff(1,1)*dphi_deta_I)
                 );
 
-                if (i!=j)
-                    m_S(j,i) = m_S(i,j);
+                m_S(i,j)+=s;
+                if (i!=j) m_S(j,i)+=s;
             }
         }
 
     }
+
 }
 
 void AdvectionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad)
@@ -106,20 +117,18 @@ void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature
     {
         double ksi = quad.get_ksi(q);
         double eta = quad.get_eta(q);
-
+        double s=0.0;
         Position r = Geometry.cartes(ksi, eta);
 
         for (int i=0; i<sh_nb; i++)
         {
             for (int j=i; j<sh_nb; j++)
             {
-                m_S(i,j) -= J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
-
-                if (i!=j)
-                    m_S(j,i) = m_S(i,j);
+                s -= J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
+                m_S(i,j)+=s;
+                if (i!=j)   m_S(j,i)+=s; 
             }
         }
-
     }
 }
 
@@ -138,7 +147,7 @@ void SourceIntegrator::F_loc(const ElementGeometry &Geometry, const Quadrature &
 
         for (int i=0; i<sh_nb; i++)
         {
-            m_F(i) = quad.get_weight(q) * J_det * m_A(r) * m_shfunc.get_phi(q,i);
+            m_F(i) += quad.get_weight(q) * J_det * m_A(r) * m_shfunc.get_phi(q,i);
         }
 
     }
