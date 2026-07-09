@@ -19,7 +19,7 @@ class Assembler{
         const Eigen::VectorXd& get_loadV() const;
 
     private:
-        Grid2D &m_grid;
+        const Grid2D &m_grid;
         std::vector<std::shared_ptr<BilinearOperator>> m_bilinearOP;
         std::vector<std::shared_ptr<LinearOperator>> m_linearOP;
 

@@ -47,6 +47,8 @@ class Grid2D{
 
         Triangle getTriangle(int idx) const;
         Position getPoint(int idx) const;
+        int getPointNb() const;
+        int getElementNb() const;
     private:
         GeometryParameters m_geoInit;
         

@@ -316,6 +316,8 @@ void Grid2D::relaxGrid()
 
 Triangle Grid2D::getTriangle(int idx) const {return m_trianglesList[idx];}
 Position Grid2D::getPoint(int idx) const {return m_pointsList[idx];}
+int Grid2D::getPointNb() const {return m_pointsList.size();}
+int Grid2D::getElementNb() const {return m_trianglesList.size();}
 
 // ========== save grid ==========
 void Grid2D::saveTrianglesPoints()
