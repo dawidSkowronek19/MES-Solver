@@ -1,6 +1,6 @@
 #include "shapeFunction.hpp"
 
-ShapeFunction::ShapeFunction(const ElementPointPositions &acc_element, int p) : m_accElement(acc_element), m_p(p)
+ShapeFunction::ShapeFunction(int p) :  m_p(p)
 {
     for (int k=0; k<=m_p; k++)
     {
@@ -89,7 +89,7 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 }
 
 
-void ShapeFunction::get_cached_values(const std::vector<std::pair<double, double>>&integration_points)
+void ShapeFunction::set_cached_values(const std::vector<std::pair<double, double>>&integration_points)
 {
     int shfunc_nb = m_IJK.size();
     
