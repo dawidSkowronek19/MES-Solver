@@ -3,8 +3,26 @@
 #include "./solver/Quadrature.hpp"
 #include "./solver/Physics.hpp"
 #include "./solver/Assembler.hpp"
+#include "./solver/Quadrature.hpp"
 
+#include <memory>
 #include <fstream>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+
+Eigen::Matrix2d laplace_tensor(Position r)
+{
+    return Eigen::Matrix2d::Identity();
+}
+double load_scalar(Position r)
+{
+    return 0.0;
+}
+
+double bc_func(Position r)
+{
+    return 1.0;
+}
 
 int main()
 {
@@ -14,5 +32,74 @@ int main()
         2*0.5*sin(M_PI/100),
         100
     };
+
+    Eigen::MatrixXd S_local;
+    Eigen::MatrixXd F_local;
+
+    Grid2D circle(geoparam);
+    circle.triangular();
+    circle.create_neighboursList();
+    circle.relaxGrid();
+
+    circle.saveTrianglesPoints();
+    circle.savePointsList();
+
+    Quadrature quad;
+
+
+    ShapeFunction sh_func(1);
+    sh_func.set_cached_values(quad.get_integrationPoints());
+
+    DoFHandler dof(circle, 1);
+    dof.countNodes();
+    dof.set_boundary_dofs(geoparam.EdgeNodesNumber, bc_func);
+    auto bc_map = dof.get_boundary_dofs();
+
+    std::vector<std::shared_ptr<BilinearOperator>> bilinear_ops;
+    std::vector<std::shared_ptr<LinearOperator>> linear_ops;
+
+    bilinear_ops.push_back(std::make_shared<LaplaceIntegrator>(sh_func, laplace_tensor));
+    linear_ops.push_back(std::make_shared<SourceIntegrator>(sh_func, load_scalar));
+
+    Assembler assembler;
+    const std::vector<std::vector<int>>& elements_dofs = dof.get_nodesID();
+
+    for (int el_idx=0; el_idx<circle.getElementNb(); el_idx++)
+    {
+        Triangle triangle = circle.getTriangle(el_idx);
+        ElementPointPositions acc_el_points;
+        acc_el_points.p1 = circle.getPoint(triangle.p1);
+        acc_el_points.p2 = circle.getPoint(triangle.p2);
+        acc_el_points.p3 = circle.getPoint(triangle.p3);
+
+        ElementGeometry geometry(acc_el_points);
+        geometry.calcJacobi();
+
+        for (auto& op : bilinear_ops)
+        {
+            op->S_clear();
+            op->S_loc(geometry, quad);
+
+            assembler.add_Smatrix(op->get_S(), elements_dofs[el_idx]);
+        }
+
+        for (auto& op : linear_ops)
+        {
+            op->F_clear();
+            op->F_loc(geometry, quad);
+
+            assembler.add_Fload(op->get_F(), elements_dofs[el_idx]);
+        }
+    }
+
+    assembler.apply_Dirichlet_BC(bc_map);
+    assembler.assemble(dof.get_totalDOF());
+    
+    Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
+    solver.compute(assembler.get_stiffnessM());
+    Eigen::VectorXd C = solver.solve(assembler.get_loadV());
+
+    
+
 
 }   

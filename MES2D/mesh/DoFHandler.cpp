@@ -65,15 +65,14 @@ void DoFHandler::countNodes()
 
 const std::vector<std::vector<int>>& DoFHandler::get_nodesID() const {return m_nodesID;}
 int DoFHandler::get_totalDOF() const {return m_total_dofs;}
-std::map<int, double> DoFHandler::get_boundary_dofs(const int boundaryNodesNb, std::function<double(Position)> &bc_fc)
+void DoFHandler::set_boundary_dofs(const int boundaryNodesNb, const std::function<double(Position)> &bc_fc)
 {
-    std::map<int, double> bc_map;
 
     for (int bc_idx=0; bc_idx<boundaryNodesNb; bc_idx++)
     {
         Position r_bc = m_grid.getPoint(bc_idx);
         double value = bc_fc(r_bc);
-        bc_map[bc_idx] = value;
+        m_bc_map[bc_idx] = value;
     }
 
     for (const auto& [edge, start_dof] : m_edge_to_dof)
@@ -93,9 +92,10 @@ std::map<int, double> DoFHandler::get_boundary_dofs(const int boundaryNodesNb, s
                 Position r_bc = p1 + (p_idx+1)*dr;
                 double value = bc_fc(r_bc);
 
-                bc_map[current_dof] = value;
+                m_bc_map[current_dof] = value;
             }
         }
     }
-    return bc_map;
-}   
+}
+
+const std::map<int, double>& DoFHandler::get_boundary_dofs() const {return m_bc_map;}

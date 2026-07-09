@@ -68,12 +68,13 @@ class ElementGeometry{
         ElementGeometry(const ElementPointPositions &accElement);
         std::tuple<Eigen::Matrix2d, Eigen::Matrix2d, double> get_JacobiEssentials() const;
         Position cartes(double ksi, double eta) const;
+        void calcJacobi();
     private:
         const ElementPointPositions m_accElement;
         Eigen::MatrixXd m_J, m_Jinv; 
         double m_J_det;
 
-        void calcJacobi();
+        
 
 
 
