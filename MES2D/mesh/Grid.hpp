@@ -57,7 +57,7 @@ class Grid2D{
         std::function<Position(double)> m_edge;
 
         std::vector<Position> m_pointsList;
-        //std::vector<int> m_boundaryConditionIndexes;
+        std::vector<int> m_boundaryConditionIndexes;
         std::vector<Triangle> m_trianglesList;
         std::vector<std::vector<int>> m_neighboursList;
     };

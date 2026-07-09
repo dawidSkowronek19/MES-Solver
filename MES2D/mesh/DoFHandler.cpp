@@ -20,8 +20,7 @@ void DoFHandler::countNodes()
     m_total_dofs = pointNb;
     if (m_p>1)
     {
-        std::map<std::pair<int,int>, int> edge_to_dof;
-
+        
         for (int el_idx=0; el_idx<elementNb; el_idx++)
         {
             Triangle e = m_grid.getTriangle(el_idx);
@@ -34,13 +33,13 @@ void DoFHandler::countNodes()
 
             for (const auto& edge : edges)
             {
-                if (edge_to_dof.find(edge)==edge_to_dof.end())
+                if (m_edge_to_dof.find(edge)==m_edge_to_dof.end())
                 {
-                    edge_to_dof[edge] = m_total_dofs;
+                    m_edge_to_dof[edge] = m_total_dofs;
                     m_total_dofs+=(m_p-1);
                 }
 
-                int start_dof = edge_to_dof[edge];
+                int start_dof = m_edge_to_dof[edge];
                 for (int p_idx=0; p_idx<m_p-1; p_idx++)
                 {
                     m_nodesID[el_idx].push_back(start_dof+p_idx);
@@ -66,3 +65,37 @@ void DoFHandler::countNodes()
 
 const std::vector<std::vector<int>>& DoFHandler::get_nodesID() const {return m_nodesID;}
 int DoFHandler::get_totalDOF() const {return m_total_dofs;}
+std::map<int, double> DoFHandler::get_boundary_dofs(const int boundaryNodesNb, std::function<double(Position)> &bc_fc)
+{
+    std::map<int, double> bc_map;
+
+    for (int bc_idx=0; bc_idx<boundaryNodesNb; bc_idx++)
+    {
+        Position r_bc = m_grid.getPoint(bc_idx);
+        double value = bc_fc(r_bc);
+        bc_map[bc_idx] = value;
+    }
+
+    for (const auto& [edge, start_dof] : m_edge_to_dof)
+    {
+        int v1 = edge.first;
+        int v2 = edge.second;
+
+        if (v1 < boundaryNodesNb && v2 <boundaryNodesNb)
+        {
+            Position p1 = m_grid.getPoint(v1);
+            Position p2 = m_grid.getPoint(v2);
+            Position dr = (p2-p1)/m_p;
+
+            for (int p_idx=0; p_idx<m_p-1; p_idx++)
+            {
+                int current_dof = start_dof + p_idx;
+                Position r_bc = p1 + (p_idx+1)*dr;
+                double value = bc_fc(r_bc);
+
+                bc_map[current_dof] = value;
+            }
+        }
+    }
+    return bc_map;
+}   
