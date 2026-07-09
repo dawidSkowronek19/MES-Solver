@@ -18,13 +18,13 @@ double Integrator();
 class BilinearOperator{
 
     public:
-        BilinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func);
+        BilinearOperator(const ShapeFunction &sh_func);
         virtual ~BilinearOperator() = default;
         virtual void S_loc(const ElementGeometry &Geometry,  const Quadrature &quad) = 0;
         void S_clear();
+        const Eigen::MatrixXd& get_S() const;
 
     protected:
-        const Grid2D &m_Grid;
         const ShapeFunction &m_shfunc;
         Eigen::MatrixXd m_S;
 };
@@ -32,13 +32,13 @@ class BilinearOperator{
 class LinearOperator{
 
     public:
-        LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func);
+        LinearOperator(const ShapeFunction &sh_func);
         virtual ~LinearOperator() = default;
         virtual void F_loc(const ElementGeometry &Geometry, const Quadrature &quad) = 0;
         void F_clear();
+        const Eigen::VectorXd& get_F() const;
 
     protected:
-        const Grid2D &m_Grid;
         const ShapeFunction &m_shfunc;
         Eigen::VectorXd m_F;
 };
@@ -51,7 +51,7 @@ class LinearOperator{
 class LaplaceIntegrator : public BilinearOperator{
     
     public:
-        LaplaceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func  ,const std::function<Eigen::MatrixXd(Position)> &A);
+        LaplaceIntegrator(const ShapeFunction &sh_func  ,const std::function<Eigen::MatrixXd(Position)> &A);
         void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<Eigen::MatrixXd(Position)> m_A;
@@ -60,7 +60,7 @@ class LaplaceIntegrator : public BilinearOperator{
 
 class AdvectionIntegrator : public BilinearOperator{
     public: 
-        AdvectionIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func ,const std::function<Eigen::Vector2d(Position)> &v);
+        AdvectionIntegrator(const ShapeFunction &sh_func ,const std::function<Eigen::Vector2d(Position)> &v);
         void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<Eigen::Vector2d(Position)> m_v;
@@ -68,7 +68,7 @@ class AdvectionIntegrator : public BilinearOperator{
 
 class ReactionIntegrator : public BilinearOperator{
     public: 
-        ReactionIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<double(Position)> &A);
+        ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A);
         void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<double(Position)> m_A;
@@ -76,7 +76,7 @@ class ReactionIntegrator : public BilinearOperator{
 
 class SourceIntegrator : public LinearOperator{
     public:
-        SourceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<double(Position)> &A);
+        SourceIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A);
         void F_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<double(Position)> m_A;

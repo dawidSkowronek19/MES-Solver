@@ -1,13 +1,13 @@
 #include "Physics.hpp"
 
 //Parents
-BilinearOperator::BilinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {
+BilinearOperator::BilinearOperator(const ShapeFunction &sh_func) :  m_shfunc(sh_func) {
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
 
     m_S = Eigen::MatrixXd::Zero(sh_nb, sh_nb);
 }
-LinearOperator::LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func) : m_Grid(Grid), m_shfunc(sh_func) {
+LinearOperator::LinearOperator(const ShapeFunction &sh_func) : m_shfunc(sh_func) {
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
 
@@ -16,23 +16,25 @@ LinearOperator::LinearOperator(const Grid2D &Grid, const ShapeFunction &sh_func)
 
 void BilinearOperator::S_clear(){m_S.setZero();}
 void LinearOperator::F_clear(){m_F.setZero();}
+const Eigen::MatrixXd& BilinearOperator::get_S() const {return m_S;}
+const Eigen::VectorXd& LinearOperator::get_F() const {return m_F;}
 
                                 
 //childrens
 //left
 
-LaplaceIntegrator::LaplaceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<Eigen::MatrixXd(Position)> &A) : BilinearOperator(Grid, sh_func), 
+LaplaceIntegrator::LaplaceIntegrator(const ShapeFunction &sh_func, const std::function<Eigen::MatrixXd(Position)> &A) : BilinearOperator(sh_func), 
                                       m_A(A) {}
 
-AdvectionIntegrator::AdvectionIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<Eigen::Vector2d(Position)> &v) : BilinearOperator(Grid, sh_func),
+AdvectionIntegrator::AdvectionIntegrator(const ShapeFunction &sh_func, const std::function<Eigen::Vector2d(Position)> &v) : BilinearOperator(sh_func),
                                         m_v(v) {}
 
-ReactionIntegrator::ReactionIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<double(Position)> &A) : BilinearOperator(Grid, sh_func),
+ReactionIntegrator::ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : BilinearOperator(sh_func),
                                         m_A(A) {}
 
 
 //right
-SourceIntegrator::SourceIntegrator(const Grid2D &Grid, const ShapeFunction &sh_func, const std::function<double(Position)> &A) : LinearOperator(Grid, sh_func), 
+SourceIntegrator::SourceIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : LinearOperator(sh_func), 
                                     m_A(A) {}
                             
 

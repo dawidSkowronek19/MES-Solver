@@ -1,27 +1,26 @@
 #ifndef ASSEMBLER_HPP
 #define ASSEMBLER_HPP
 #include <vector>
-#include <memory>
+#include <map>
 #include <Eigen/Sparse>
 #include "./Physics.hpp"
 #include "../mesh/Grid.hpp"
+#include "../mesh/DoFHandler.hpp"
+
 
 class Assembler{
     public:
-        Assembler(const Grid2D &grid);
-        void add_stiffness_term(std::shared_ptr<BilinearOperator> op);
-        void add_load_term(std::shared_ptr<LinearOperator> op);
-        void assemble();
-        void apply_Dirichlet_BC(const std::vector<int> &boundary_nodes_idx);
-        void apply_Neuman_BC(const std::vector<int> &boundary_nodes_idx);
+        Assembler();
+        void add_Smatrix(const Eigen::MatrixXd& S_loc, const std::vector<int> &dof_indices);
+        void add_Fload(const Eigen::VectorXd& F_loc, const std::vector<int> &dof_indices);
+        void assemble(const int total_dofs);
+        void apply_Dirichlet_BC(const std::map<int, double>& boundary_values);
+        //void apply_Neuman_BC(const std::vector<int> &boundary_nodes_idx);
 
         const Eigen::SparseMatrix<double>& get_stiffnessM() const;
         const Eigen::VectorXd& get_loadV() const;
 
     private:
-        const Grid2D &m_grid;
-        std::vector<std::shared_ptr<BilinearOperator>> m_bilinearOP;
-        std::vector<std::shared_ptr<LinearOperator>> m_linearOP;
 
         Eigen::SparseMatrix<double> m_S;
         Eigen::VectorXd m_F;
