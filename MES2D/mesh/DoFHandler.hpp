@@ -17,7 +17,7 @@ class DoFHandler{
     private:
         std::vector<std::vector<int>> m_nodesID;
         std::map<std::pair<int,int>, int> m_edge_to_dof;
-        std::map<int, double> bc_map; m_bc_map;
+        std::map<int, double> m_bc_map;
         int m_p;
         const Grid2D &m_grid;
         int m_total_dofs;

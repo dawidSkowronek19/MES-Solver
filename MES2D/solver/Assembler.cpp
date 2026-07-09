@@ -1,6 +1,9 @@
 #include "Assembler.hpp"
 
-Assembler::Assembler(){}
+Assembler::Assembler(int size)
+{
+    m_F = Eigen::VectorXd::Zero(size);
+}
 
 
 

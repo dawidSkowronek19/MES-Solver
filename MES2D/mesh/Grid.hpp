@@ -8,10 +8,15 @@
 #include <functional>
 #include <cmath>
 #include <set>
+#include <tuple>
+#include <Eigen/Dense>
 #include "Point.hpp"
 #include "../solver/shapeFunction.hpp"
 
 
+struct ElementPointPositions{
+    Position p1, p2, p3;
+};
 
 struct Triangle{
     int p1, p2, p3;
@@ -71,7 +76,7 @@ class ElementGeometry{
         void calcJacobi();
     private:
         const ElementPointPositions m_accElement;
-        Eigen::MatrixXd m_J, m_Jinv; 
+        Eigen::Matrix2d m_J, m_Jinv; 
         double m_J_det;
 
         

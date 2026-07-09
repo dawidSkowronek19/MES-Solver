@@ -12,16 +12,20 @@
 
 Eigen::Matrix2d laplace_tensor(Position r)
 {
-    return Eigen::Matrix2d::Identity();
+    Eigen::Matrix2d A;
+    A<<10.0, 0.0,
+        0.0, 1.0;
+    return A;
 }
 double load_scalar(Position r)
 {
+    if (r.x()*r.x() + r.y()*r.y() < 0.04) return 50.0;
     return 0.0;
 }
 
 double bc_func(Position r)
 {
-    return 1.0;
+    return 0.0;
 }
 
 int main()
@@ -32,6 +36,8 @@ int main()
         2*0.5*sin(M_PI/100),
         100
     };
+
+    int p = 1;
 
     Eigen::MatrixXd S_local;
     Eigen::MatrixXd F_local;
@@ -44,26 +50,28 @@ int main()
     circle.saveTrianglesPoints();
     circle.savePointsList();
 
-    Quadrature quad;
-
-
-    ShapeFunction sh_func(1);
+    std::cout<<"quadrature\n";
+    Quadrature quad = QuadratureFactory::refTriangle(p);
+    std::cout<<"shape functions\n";
+    ShapeFunction sh_func(p);
     sh_func.set_cached_values(quad.get_integrationPoints());
-
-    DoFHandler dof(circle, 1);
+    std::cout<<"degree of freedom\n";
+    DoFHandler dof(circle, p);
     dof.countNodes();
     dof.set_boundary_dofs(geoparam.EdgeNodesNumber, bc_func);
+    std::cout << "DOF: " << dof.get_totalDOF() << std::endl;
     auto bc_map = dof.get_boundary_dofs();
 
+    std::cout<<"operators\n";
     std::vector<std::shared_ptr<BilinearOperator>> bilinear_ops;
     std::vector<std::shared_ptr<LinearOperator>> linear_ops;
 
     bilinear_ops.push_back(std::make_shared<LaplaceIntegrator>(sh_func, laplace_tensor));
     linear_ops.push_back(std::make_shared<SourceIntegrator>(sh_func, load_scalar));
-
-    Assembler assembler;
+    std::cout<<"assembler init\n";
+    Assembler assembler(dof.get_totalDOF());
     const std::vector<std::vector<int>>& elements_dofs = dof.get_nodesID();
-
+    std::cout<<"local element loop\n";
     for (int el_idx=0; el_idx<circle.getElementNb(); el_idx++)
     {
         Triangle triangle = circle.getTriangle(el_idx);
@@ -73,8 +81,9 @@ int main()
         acc_el_points.p3 = circle.getPoint(triangle.p3);
 
         ElementGeometry geometry(acc_el_points);
+        //std::cout<<"Jacobi\n";
         geometry.calcJacobi();
-
+        //std::cout<<"local operators\n";
         for (auto& op : bilinear_ops)
         {
             op->S_clear();
@@ -91,15 +100,24 @@ int main()
             assembler.add_Fload(op->get_F(), elements_dofs[el_idx]);
         }
     }
-
+    std::cout<<"boundary conditions\n";
     assembler.apply_Dirichlet_BC(bc_map);
+    std::cout<<"assembling\n";
     assembler.assemble(dof.get_totalDOF());
-    
+    std::cout<<"solving\n";
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
     solver.compute(assembler.get_stiffnessM());
     Eigen::VectorXd C = solver.solve(assembler.get_loadV());
 
-    
+    //for test
+    std::ofstream file_C("./outdir/C.dat");
+    for (int i = 0; i < circle.getPointNb(); i++) 
+    {
+    Position p = circle.getPoint(i);
+    file_C << p.x() << "," << p.y() << "," << C(i) << "\n";
+    }   
+
+    file_C.close();
 
 
 }   

@@ -10,7 +10,7 @@
 
 class Assembler{
     public:
-        Assembler();
+        Assembler(int size);
         void add_Smatrix(const Eigen::MatrixXd& S_loc, const std::vector<int> &dof_indices);
         void add_Fload(const Eigen::VectorXd& F_loc, const std::vector<int> &dof_indices);
         void assemble(const int total_dofs);

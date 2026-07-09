@@ -92,6 +92,10 @@ std::pair<double, double> ShapeFunction::div_phi(double ksi, double eta, int idx
 void ShapeFunction::set_cached_values(const std::vector<std::pair<double, double>>&integration_points)
 {
     int shfunc_nb = m_IJK.size();
+
+    m_phi = Eigen::MatrixXd::Zero(integration_points.size(), shfunc_nb);
+    m_dphi_dksi = Eigen::MatrixXd::Zero(integration_points.size(), shfunc_nb);
+    m_dphi_deta = Eigen::MatrixXd::Zero(integration_points.size(), shfunc_nb);
     
     for (int shfunc_idx=0; shfunc_idx<shfunc_nb; shfunc_idx++)
     {

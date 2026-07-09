@@ -47,7 +47,7 @@ SourceIntegrator::SourceIntegrator(const ShapeFunction &sh_func, const std::func
 void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad) // Tensor A MUST BE SYMMETRIC
 {
     
-    const auto [_, J_inv, J_det] = Geometry.get_JacobiEssentials();
+    const auto [J, J_inv, J_det] = Geometry.get_JacobiEssentials();
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
     Eigen::MatrixXd A_eff;
@@ -56,7 +56,6 @@ void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature 
     {
         double ksi = quad.get_ksi(q);
         double eta = quad.get_eta(q);
-        double s=0.0;
         Position r = Geometry.cartes(ksi, eta);
         A_eff=J_inv.transpose() * m_A(r) * J_inv;
 
@@ -67,7 +66,7 @@ void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature 
                 double dphi_dksi_I = m_shfunc.get_dphi_dksi(q, i);
                 double dphi_deta_I = m_shfunc.get_dphi_deta(q,i);
 
-                s+=J_det*quad.get_weight(q)*(
+                double s=J_det*quad.get_weight(q)*(
                     m_shfunc.get_dphi_dksi(q,j)*(A_eff(0,0)*dphi_dksi_I + A_eff(1,0)*dphi_deta_I) +
                     m_shfunc.get_dphi_deta(q,j)*(A_eff(0,1)*dphi_dksi_I + A_eff(1,1)*dphi_deta_I)
                 );
@@ -83,7 +82,7 @@ void LaplaceIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature 
 
 void AdvectionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad)
 {
-    const auto [_, J_inv, J_det] = Geometry.get_JacobiEssentials();
+    const auto [J, J_inv, J_det] = Geometry.get_JacobiEssentials();
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
     Eigen::Vector2d v_eff;
@@ -95,7 +94,7 @@ void AdvectionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadratur
         double eta = quad.get_eta(q);
 
         Position r = Geometry.cartes(ksi, eta);
-        v_eff = m_v(r)*J_inv.transpose();
+        v_eff = m_v(r).transpose()*J_inv.transpose();
 
         for (int i=0; i<sh_nb; i++)
         {
@@ -111,7 +110,7 @@ void AdvectionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadratur
 
 void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad)
 {
-    const auto [_, _, J_det] = Geometry.get_JacobiEssentials();
+    const auto [J, J_inv, J_det] = Geometry.get_JacobiEssentials();
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
 
@@ -119,14 +118,14 @@ void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature
     {
         double ksi = quad.get_ksi(q);
         double eta = quad.get_eta(q);
-        double s=0.0;
+
         Position r = Geometry.cartes(ksi, eta);
 
         for (int i=0; i<sh_nb; i++)
         {
             for (int j=i; j<sh_nb; j++)
             {
-                s -= J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
+                double s = -J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
                 m_S(i,j)+=s;
                 if (i!=j)   m_S(j,i)+=s; 
             }
@@ -136,7 +135,7 @@ void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature
 
 void SourceIntegrator::F_loc(const ElementGeometry &Geometry, const Quadrature &quad)
 {
-    const auto [_, _, J_det] = Geometry.get_JacobiEssentials();
+    const auto [J, J_inv, J_det] = Geometry.get_JacobiEssentials();
     int p = m_shfunc.get_p();
     int sh_nb = (p+1)*(p+2)/2;
 

@@ -6,9 +6,7 @@
 #include <Eigen/Dense>
 #include <tuple>
 
-struct ElementPointPositions{
-    Position p1, p2, p3;
-};
+
 
 struct ShapeFunctionEssentials{
     double phi, dphi_dksi, dphi_deta;

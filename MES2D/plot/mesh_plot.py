@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import os
 
-points_file = './outdir/pointsList.dat'
-triangles_file = './outdir/trianglesPointsList.dat'
+points_file = '../outdir/pointsList.dat'
+triangles_file = '../outdir/trianglesPointsList.dat'
 
 
 
@@ -36,4 +36,4 @@ plt.gca().set_aspect('equal')
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.legend()
 
-plt.savefig("./triangular_circle.png")
+plt.savefig("../graphs/triangular_circle.png")
