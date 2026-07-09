@@ -12,7 +12,7 @@ class DoFHandler{
         void countNodes();
         const std::vector<std::vector<int>>& get_nodesID() const;
         int get_totalDOF() const;
-        std::map<int, double> get_boundary_dofs(const std::vector<int> &boundaryNodes, std::function<double(Position)>& bc_fc);
+        std::map<int, double> get_boundary_dofs(const int boundaryNodesNb, std::function<double(Position)>& bc_fc);
     private:
         std::vector<std::vector<int>> m_nodesID;
         std::map<std::pair<int,int>, int> m_edge_to_dof;
