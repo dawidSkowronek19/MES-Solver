@@ -74,6 +74,7 @@ class ReactionIntegrator : public BilinearOperator{
         std::function<double(Position)> m_A;
 };
 
+
 class SourceIntegrator : public LinearOperator{
     public:
         SourceIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A);

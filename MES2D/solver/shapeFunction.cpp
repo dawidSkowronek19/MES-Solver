@@ -1,13 +1,28 @@
 #include "shapeFunction.hpp"
 
-ShapeFunction::ShapeFunction(int p) :  m_p(p)
+ShapeFunction::ShapeFunction(int p) : m_p(p)
 {
-    for (int k=0; k<=m_p; k++)
+    m_IJK.push_back({m_p, 0, 0});
+    m_IJK.push_back({0, m_p, 0});
+    m_IJK.push_back({0, 0, m_p});
+
+    if (m_p > 1) 
     {
-        for (int j=0; j<=m_p-k; j++)
+        
+        for (int i = m_p - 1; i >= 1; i--) m_IJK.push_back({i, m_p - i, 0});
+        for (int i = m_p - 1; i >= 1; i--) m_IJK.push_back({0, i, m_p - i});
+        for (int i = m_p - 1; i >= 1; i--) m_IJK.push_back({i, 0, m_p - i});
+    }
+
+    if (m_p > 2) 
+    {
+        for (int k = 1; k <= m_p - 2; k++) 
         {
-            int i = m_p - j - k;
-            m_IJK.push_back({i,j,k});
+            for (int j = 1; j <= m_p - k - 1; j++) 
+            {
+                int i = m_p - j - k;
+                m_IJK.push_back({i, j, k});
+            }
         }
     }
 }

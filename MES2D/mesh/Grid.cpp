@@ -357,7 +357,7 @@ void ElementGeometry::calcJacobi()
     m_J(1,0) = m_accElement.p3.x() - m_accElement.p1.x();
     m_J(1,1) = m_accElement.p3.y() - m_accElement.p1.y();
 
-    m_J_det = m_J.determinant();
+    m_J_det = std::abs(m_J.determinant());
     m_Jinv = m_J.inverse();
 }
 

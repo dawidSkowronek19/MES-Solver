@@ -22,6 +22,7 @@ class ShapeFunction{
         double get_dphi_deta(const int idx, const int sh_nb) const;
         void set_cached_values(const std::vector<std::pair<double, double>>&integration_points);
         int get_p() const;
+        double phi(double ksi ,double eta, int idx) const;
 
 
     private:
@@ -33,7 +34,7 @@ class ShapeFunction{
         std::tuple<double, double, double> lambda_gen(const double ksi, const double eta) const;
         double Silvester(const int i, const double lambda) const;
         double divSilvester(const int i, const double lambda) const;
-        double phi(double ksi ,double eta, int idx) const;
+        
         std::pair<double, double> div_phi(double ksi, double eta, int idx) const;
         
         //Position KsiEta_to_XY(double ksi, double eta) const;

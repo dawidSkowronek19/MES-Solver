@@ -1,30 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.tri as mtri
+import matplotlib.tri as tri
 
-print("Wczytywanie danych z ../outdir/C.dat ...")
+# Wczytanie danych
+data = np.loadtxt('../outdir/C.dat')
+x = data[:, 0]
+y = data[:, 1]
+u = data[:, 2]
 
-try:
+# Tworzenie wykresu
+plt.figure(figsize=(10, 8))
 
-    x, y, u = np.loadtxt('../outdir/C.dat', delimiter=',', unpack=True)
-except OSError:
-    print("Błąd: Nie znaleziono pliku ../outdir/C.dat! Sprawdź ścieżkę.")
-    exit()
+# tricontourf tworzy idealnie gładkie izolinie z chmury punktów
+# levels=100 oznacza wysoką płynność przejść kolorów
+contour = plt.tricontourf(x, y, u, levels=100, cmap='inferno')
 
-
-triang = mtri.Triangulation(x, y)
-
-
-plt.figure(figsize=(8, 8))
-contour = plt.tricontourf(triang, u, levels=50, cmap='inferno')
-
-
-plt.colorbar(contour, label='Wartość u (np. potencjał/temperatura)')
-plt.title('Rozwiązanie MES (Równanie Laplace\'a)')
+plt.colorbar(contour, label='Rozwiązanie U')
 plt.xlabel('Oś X')
 plt.ylabel('Oś Y')
-
-plt.axis('equal') 
-
+plt.title(f'Rozwiązanie MES (Zagęszczone)')
+plt.axis('equal') # Ważne, żeby koło nie było jajkiem!
 plt.tight_layout()
 plt.show()
