@@ -68,7 +68,7 @@ class AdvectionIntegrator : public BilinearOperator{
 
 class ReactionIntegrator : public BilinearOperator{
     public: 
-        ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A);
+        ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A = [](Position){return 1.0;});
         void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<double(Position)> m_A;
@@ -81,6 +81,13 @@ class SourceIntegrator : public LinearOperator{
         void F_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
     private:
         std::function<double(Position)> m_A;
+};
+
+
+class MassDampingIntegrator : public BilinearOperator{
+    public:
+        MassDampingIntegrator(const ShapeFunction &sh_func, const std::function<double(Position r)> &A);
+        void matrix_loc(const ElementGeometry &Geometry, const Quadrature &quad);
 };
 
 
