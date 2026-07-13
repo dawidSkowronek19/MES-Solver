@@ -29,15 +29,21 @@ LaplaceIntegrator::LaplaceIntegrator(const ShapeFunction &sh_func, const std::fu
 AdvectionIntegrator::AdvectionIntegrator(const ShapeFunction &sh_func, const std::function<Eigen::Vector2d(Position)> &v) : BilinearOperator(sh_func),
                                         m_v(v) {}
 
-ReactionIntegrator::ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : BilinearOperator(sh_func),
-                                        m_A(A) {}
+
+SimpleIntegrator::SimpleIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A, const double multi) : BilinearOperator(sh_func),
+                                    m_A(A), m_multi(multi) {}
+
+
+ReactionIntegrator::ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : SimpleIntegrator(sh_func, A, -1.0) {}
+MassDampingIntegrator::MassDampingIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : SimpleIntegrator(sh_func, A, 1.0) {}
+
+
 
 
 //right
 SourceIntegrator::SourceIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A) : LinearOperator(sh_func), 
                                     m_A(A) {}
                             
-
 
 
 // ==================== LOCAL MATRIX =================
@@ -108,7 +114,7 @@ void AdvectionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadratur
     }
 }
 
-void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad)
+void SimpleIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature &quad)
 {
     const auto [J, J_inv, J_det] = Geometry.get_JacobiEssentials();
     int p = m_shfunc.get_p();
@@ -125,7 +131,7 @@ void ReactionIntegrator::S_loc(const ElementGeometry &Geometry, const Quadrature
         {
             for (int j=i; j<sh_nb; j++)
             {
-                double s = -J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
+                double s = m_multi*J_det*quad.get_weight(q)*m_A(r)*m_shfunc.get_phi(q,i)*m_shfunc.get_phi(q,j);
                 m_S(i,j)+=s;
                 if (i!=j)   m_S(j,i)+=s; 
             }
@@ -153,3 +159,4 @@ void SourceIntegrator::F_loc(const ElementGeometry &Geometry, const Quadrature &
 
     }
 }
+

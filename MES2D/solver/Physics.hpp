@@ -43,6 +43,15 @@ class LinearOperator{
         Eigen::VectorXd m_F;
 };
 
+class SimpleIntegrator : public BilinearOperator{
+    public:
+        SimpleIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A, const double multi);
+        void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
+    protected:
+        std::function<double(Position)> m_A;
+        double m_multi;
+};
+
 
 // ==================
 
@@ -66,13 +75,6 @@ class AdvectionIntegrator : public BilinearOperator{
         std::function<Eigen::Vector2d(Position)> m_v;
 };
 
-class ReactionIntegrator : public BilinearOperator{
-    public: 
-        ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A = [](Position){return 1.0;});
-        void S_loc(const ElementGeometry &Geometry, const Quadrature &quad) override;
-    private:
-        std::function<double(Position)> m_A;
-};
 
 
 class SourceIntegrator : public LinearOperator{
@@ -84,10 +86,14 @@ class SourceIntegrator : public LinearOperator{
 };
 
 
-class MassDampingIntegrator : public BilinearOperator{
+class ReactionIntegrator : public SimpleIntegrator{
+    public: 
+        ReactionIntegrator(const ShapeFunction &sh_func, const std::function<double(Position)> &A);
+};
+
+class MassDampingIntegrator : public SimpleIntegrator{
     public:
         MassDampingIntegrator(const ShapeFunction &sh_func, const std::function<double(Position r)> &A);
-        void matrix_loc(const ElementGeometry &Geometry, const Quadrature &quad);
 };
 
 

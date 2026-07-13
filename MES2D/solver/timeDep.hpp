@@ -10,10 +10,11 @@ struct C_vec{
 class Newmark_beta{
     public:
         Newmark_beta(const Eigen::SparseMatrix<double> &S, const Eigen::SparseMatrix<double> &M, 
-            const Eigen::SparseMatrix<double> &D, const Eigen::VectorXd &m_F, double beta, double gamma, double dt, int size);
+            const Eigen::SparseMatrix<double> &D, const Eigen::VectorXd &m_F, double beta, double gamma, double dt);
         void set_Seffective();
         void set_initial(const Eigen::VectorXd &C, const Eigen::VectorXd &dC);
         void solve();
+        const C_vec& get_C() const;
         
 
 
